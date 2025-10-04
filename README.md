@@ -70,28 +70,30 @@ state
         an owner User
         a start Time
         an end Time
-        a taskSet set of Tasks 
+        a taskSet set of Task
 
 actions
     addTimeBlock (owner: User, start: Time, end: Time)
         requires:
-            no adaptive time block exists with this owner, start, and end
+            start and end are valid times;
+            start is before end;
+            no adaptive time block exists with this owner, start, and end;
         effect:
             create a new adaptive time block $b$ with this owner, start, and end;
             assign $b$ an empty set of tasks;
     
     createAdaptiveSchedule (owner: User, tasks: set of Task, schedule: Schedule, routine: Routine)
         effect:
-            based on (task, schedule, and routine), adaptively generate a new schedule of tasks by assigning active tasks to the corresponding AdaptiveBlock under this owner
+            based on (task, schedule, and routine), adaptively generate a new schedule of tasks by assigning active tasks to taskSet of the corresponding AdaptiveBlock under this owner
     
-    requestAdaptiveScheduleAI (owner: User, task: Task, schedule: Schedule, routine: Routine, preference: Preference): (adaptiveBlock: AdaptiveBlock)
+    async requestAdaptiveScheduleAI (owner: User, task: Task, schedule: Schedule, routine: Routine, preference: Preference, llm: GeminiLLM): (adaptiveBlock: AdaptiveBlock)
         effect:
             AI-assisted adaptive scheduling LLM first analyzes the difference between schedule and routine, and reasons the possible causes of deviation;
             it considers hardwired user preference;
             it considers the original planned schedule of task;
             it considers information provided by attributes in task;
             it also considers other schedules represented by adaptive blocks owned by the user;
-            after reasoning, the LLM assigns the task under one or more adaptive blocks under this owner;
+            after reasoning, the LLM assigns the task under the taskSet of one or more adaptive blocks owned by this user;
             return the set of all AdaptiveBlocks owned by the user;
 
     unassignBlock (owner: User, task: Task, timeBlockId: String)
@@ -153,6 +155,8 @@ Here are some notes that worth highlighting:
 3. Preference is a list of hardwired user preferences about the schedule. In the actual app, we might have another AI extracting and generating the user preference based on their previous schedule and recorded sessions. But for now, for the sake of simplicity, we assume that these preferences are hardwired (and the users will input them in the frontend).
 
 4. By integrating an LLM-powered action `requestAdaptiveScheduleAI`, the concept achieves a boost in capacity. The LLM acts as a mixed-initiative partner, automating what it can (adaptively rescheduling tasks) while still allowing the user to retain final control.
+
+5. I did not add the invariant constraint that only one task is allowed for an adaptive block. This is because some times the user may hope to execute multiple tasks concurrently. For example, they can schedule do laundry and do homework both at 4pm-5pm, because they only need to put laundry in the laundry machine, then go back to work. However, I will add in the prompt to the LLM that, unless the tasks can be executed concurrently, don't schedule multiple tasks under the same time block.
 
 # User interaction design
 ## Wireframe from last time

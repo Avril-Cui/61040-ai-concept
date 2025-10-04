@@ -4,7 +4,7 @@ A simple day planner. This implementation focuses on the core concept of organiz
 ## Concept: DayPlanner
 
 **Purpose**: Help you organize activities for a single day  
-**Principle**: You can add activities one at a time, assign them to times, and then observe the completed schedule
+**Principle**: Ysou can add activities one at a time, assign them to times, and then observe the completed schedule
 
 ### Core State
 - **Activities**: Set of activities with title, duration, and optional startTime

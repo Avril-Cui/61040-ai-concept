@@ -5,12 +5,14 @@
   "main": "dist/dayplanner-tests.js",
   "scripts": {
     "build": "tsc",
-    "start": "npm run build && node dist/dayplanner-tests.js",
-    "dev": "ts-node --transpile-only dayplanner-tests.ts",
-    "test": "npm run build && node dist/dayplanner-tests.js",
-    "manual": "npm run build && node -e \"require('./dist/dayplanner-tests.js').testManualScheduling()\"",
-    "llm": "npm run build && node -e \"require('./dist/dayplanner-tests.js').testLLMScheduling()\"",
-    "mixed": "npm run build && node -e \"require('./dist/dayplanner-tests.js').testMixedScheduling()\""
+    "start": "npm run build && node dist/neo-code/adaptiveschedule-tests.js",
+    "dev": "ts-node --transpile-only neo-code/adaptiveschedule-tests.ts",
+    "test": "npm run build && node dist/neo-code/adaptiveschedule-tests.js",
+    "dayplanner": "npm run build && node dist/dayplanner-tests.js",
+    "adaptive:manual": "npm run build && node -e \"require('./dist/neo-code/adaptiveschedule-tests.js').testManualTimeBlocks()\"",
+    "adaptive:ai": "npm run build && node -e \"require('./dist/neo-code/adaptiveschedule-tests.js').testAIAdaptiveScheduling()\"",
+    "adaptive:complex": "npm run build && node -e \"require('./dist/neo-code/adaptiveschedule-tests.js').testComplexAdaptiveScheduling()\"",
+    "adaptive:unassign": "npm run build && node -e \"require('./dist/neo-code/adaptiveschedule-tests.js').testUnassignBlock()\""
   },
   "keywords": ["gemini", "ai", "schedule", "student", "demo", "typescript"],
   "author": "Student Demo",
