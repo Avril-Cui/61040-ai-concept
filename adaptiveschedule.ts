@@ -193,7 +193,7 @@ export class AdaptiveSchedule {
     4. Schedule critical tasks (priority 1-2) before lower priority tasks
     5. Consider user preferences for scheduling
     6. Respect task constraints (duration, splittable, slack)
-    7. **CONCURRENCY OPTIMIZATION (CRITICAL): Tasks like laundry, cleaning room, or dishwashing can be done CONCURRENTLY with other tasks (studying, homework, etc.) because they don't require constant attention. You MUST actively look for these opportunities and create OVERLAPPING time blocks to save time. For example, if you schedule "Do Laundry" from 2:00-3:00 PM, you should ALSO schedule another task (like studying) from 2:00-3:00 PM or overlapping that time period. This is a key optimization that can free up significant time.**
+    7. **CONCURRENCY OPTIMIZATION (CRITICAL): Only PASSIVE/BACKGROUND tasks (laundry, dishwashing - tasks that run automatically) can be done CONCURRENTLY with other tasks. Active tasks like cleaning room, organizing notes, or studying CANNOT be done concurrently. For passive tasks, you MUST create OVERLAPPING time blocks to save time. For example, "Do Laundry" from 2:00-3:00 PM can overlap with "Study" from 2:00-3:00 PM. But "Clean Room" and "Organize Notes" CANNOT overlap because both require active attention.**
 
     SCHEDULING CONSTRAINTS:
     - Times must be in ISO 8601 format (e.g., "2025-10-04T14:00:00Z")
@@ -243,21 +243,14 @@ export class AdaptiveSchedule {
     - WRONG: Schedule tasks after the 5 PM deadline
 
     EXAMPLE 2 - Concurrency optimization (MUST DO THIS if deadline is tight):
-    - Laundry (60 min) + Study for exam (120 min) = normally 180 min sequential
-    - CORRECT APPROACH: Fully overlap the laundry within studying time
-      Block A: {
-        "start": "2025-10-04T14:00:00Z",
-        "end": "2025-10-04T15:00:00Z",
-        "taskIds": ["laundry-task-id"]
-      },
-      Block B: {
-        "start": "2025-10-04T14:00:00Z",
-        "end": "2025-10-04T16:00:00Z",
-        "taskIds": ["study-task-id"]
-      }
-    - Result: Both tasks complete by 4:00 PM instead of 5:00 PM, saving 60 full minutes
-    - WRONG: Only partial overlap (like laundry 1:40-2:40, study 2:00-4:00) wastes 40 minutes
-    - WRONG: Sequential scheduling wastes 60 minutes
+    - Laundry (60 min, PASSIVE) + Study (120 min, ACTIVE) = normally 180 min sequential
+    - CORRECT: Overlap laundry with studying (both start at same time)
+      Block A: {"start": "2025-10-04T14:00:00Z", "end": "2025-10-04T15:00:00Z", "taskIds": ["laundry-task-id"]},
+      Block B: {"start": "2025-10-04T14:00:00Z", "end": "2025-10-04T16:00:00Z", "taskIds": ["study-task-id"]}
+    - Result: Both complete by 4:00 PM, saving 60 minutes
+    - WRONG: Clean Room + Organize Notes overlapping (both are ACTIVE tasks - cannot be concurrent)
+    - WRONG: Partial overlap wastes time
+    - WRONG: Any scheduling that extends past the deadline
 
     Return ONLY the JSON object, no additional text.`;
   }
@@ -580,10 +573,13 @@ export class AdaptiveSchedule {
     // that doesn't require constant attention
     const allTasks = [...tasks1, ...tasks2];
 
-    // List of task categories/names that can be done concurrently
+    // List of specific task patterns that can be done concurrently (passive/background tasks)
+    // Note: These are tasks that don't require constant active attention
     const concurrentTaskPatterns = [
-      'laundry', 'cleaning', 'clean', 'dishwash', 'dishes',
-      'washing', 'drying', 'cooking', 'baking'
+      'laundry', 'do laundry', 'wash clothes',
+      'dishwash', 'dishes', 'wash dishes',
+      'washing machine', 'dryer', 'drying clothes',
+      'cooking', 'baking', 'oven'
     ];
 
     for (const task of allTasks) {
@@ -592,12 +588,12 @@ export class AdaptiveSchedule {
         return true;
       }
 
-      // Check if task name or category matches concurrent patterns
+      // Check if task name matches concurrent patterns
+      // Use exact matching to avoid false positives like "clean room" matching "clean"
       const taskNameLower = task.taskName.toLowerCase();
-      const categoryLower = task.category.toLowerCase();
 
       for (const pattern of concurrentTaskPatterns) {
-        if (taskNameLower.includes(pattern) || categoryLower.includes(pattern)) {
+        if (taskNameLower === pattern || taskNameLower.includes(pattern)) {
           return true;
         }
       }
