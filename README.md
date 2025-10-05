@@ -1,3 +1,16 @@
+# Running this repo
+To run my code, add you `config.json` api key. Then, run `npm install` and `npm start`.
+
+For specific test cases, run:
+
+```
+npm run test:manual - Test manual time blocks
+npm run test:ai - Test AI adaptive scheduling
+npm run test:dependencies - Test dependencies
+npm run test:deadlines - Test deadlines and concurrency
+npm run test:unassign - Test unassign block
+```
+
 # Part one: Concept Augmentation
 
 In my original [concept specification of my app](https://github.com/Avril-Cui/61040-portfolio/blob/main/assignments/assignment2.md), one concept that relies heavily on AI augmentation is `AdaptiveSchedule`. Below is my original specification:
