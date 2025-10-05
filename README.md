@@ -1,7 +1,7 @@
 # Running this repo
 To run my code, add you `config.json` api key. Then, run `npm install` and `npm start`.
 
-For specific test cases, run:
+For specific test cases, please run:
 
 ```
 npm run test:manual - Test manual time blocks
