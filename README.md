@@ -1,10 +1,10 @@
 # Part one: Concept Augmentation
 
-In my original [concept specification](https://github.com/Avril-Cui/61040-portfolio/blob/main/assignments/assignment2.md), one concept that relies heavily on AI augmentation is `AdaptiveSchedule`. Below is my original specification:
+In my original [concept specification of my app](https://github.com/Avril-Cui/61040-portfolio/blob/main/assignments/assignment2.md), one concept that relies heavily on AI augmentation is `AdaptiveSchedule`. Below is my original specification:
 
-## AdaptiveSchedule: original version
+## AdaptiveSchedule: original version (from last week)
 
-AdaptiveSchedule ensures that the user’s schedule remains realistic when plans diverge from reality. It consumes generic inputs like tasks, schedule, and routine, and produces new adaptive blocks without altering those original concepts. AdaptiveSchedule maintains independence while optimizing schedules. It functions as a separate, adaptive layer that responds dynamically to RoutineLog and updates plans accordingly.
+AdaptiveSchedule ensures that the user’s schedule remains realistic when plans diverge from reality. It consumes generic inputs like tasks, schedule, and routine, and produces new adaptive time blocks without altering those original concepts. AdaptiveSchedule maintains independence while optimizing schedules. It functions as a separate, adaptive layer that responds dynamically to RoutineLog and updates plans accordingly.
 
 The generic parameters are instantiated as follows:
 
@@ -19,42 +19,41 @@ All of these external types are completely generic, and AdaptiveSchedule makes n
 concept AdaptiveSchedule [User, Task, Schedule, Routine]
 
 purpose
-    keeps the schedule responsive by moving, canceling, or creating tasks scheduled at future time blocks when reality diverges to ensure that highest priority tasks are achieved first, optimizing productivity
+   keeps the schedule responsive by moving, canceling, or creating tasks scheduled at future time blocks when reality diverges to ensure that highest priority tasks are achieved first, optimizing productivity
 
 principle
-    when actual sessions overruns or diverges from the plan, the scheduler adjusts subsequent planned tasks
+   when actual sessions overruns or diverges from the plan, the scheduler adjusts subsequent planned tasks and schedules the tasks onto adaptive blocks
 
 state
-    a set of AdaptiveBlocks with
-        a timeBlockId String // this is a unique id
-        an owner User
-        a start Time
-        an end Time
-        a taskIdSet set of Strings // contains unique ids
+   a set of AdaptiveBlocks with
+      a timeBlockId String // this is a unique id
+      an owner User
+      a start Time
+      an end Time
+      a taskIdSet set of Strings // contains unique ids
 
 actions
-    addTimeBlock (owner: User, start: Time, end: Time)
-        requires:
-            no adaptive time block exists with this owner, start, and end
-        effect:
-            create a new adaptive time block $b$ with this owner, start, and end;
-            assign $b$ an empty set of tasks;
+   addTimeBlock (owner: User, start: Time, end: Time)
+      requires:
+         no adaptive time block exists with this owner, start, and end
+      effect:
+         create a new adaptive time block $b$ with this owner, start, and end;
+         assign $b$ an empty set of taskIdSet;
 
     createAdaptiveSchedule (owner: User, tasks: set of Task, schedule: Schedule, routine: Routine)
         effect:
-            based on (task, schedule, and routine), adaptively generate a new schedule of tasks by assigning active tasks to the corresponding AdaptiveBlock under this owner
-
+            based on (tasks, schedule, and routine) information, adaptively generate a new schedule of tasks by assigning active tasks to the corresponding AdaptiveBlock under this owner
 ```
 
 ## AdaptiveSchedule: AI-augmented version
 
-We can see that in the original concept, the `createAdaptiveSchedule` action takes in task, schedule, and routine as input, then adaptively generate a new schedule of tasks for future events. This original concept blackboxed the process of generating an adaptive schedule, and there can be many ways to achieve the actions. For example:
+We can see that in the original concept, the `createAdaptiveSchedule` action takes in tasks, schedule, and routine as input, then adaptively generate a new schedule of tasks for future events. This original concept blackboxed the process of generating an adaptive schedule, and there can be many ways to achieve the actions. For example:
 
-1. We can display user their current task, schedule, and routine, and they manually adjust their future schedule.
+1. We can display user their current planned tasks, schedule, and routine, and they manually adjust their future schedule. In this case, users manually create their adaptive schedule.
 2. Program a rule-based algorithm that adjust the schedule based on rules.
-3. Augment with AI so that the LLM-empowered agent will generate the adaptive schedule for the user based on current ask, schedule, routine, and their optional preferences.
+3. Augment the concept with AI so that the LLM-empowered agent will generate the adaptive schedule for the user based on current planned tasks, schedule, routine, and their optional preferences.
 
-We can see that the AdaptiveSchedule concept is uniquely suited for AI augmentation because its core function is to continuously adjusting schedules based on real-world deviations, which requires flexible reasoning, contextual synthesis, and adaptive prioritization that go beyond deterministic rule-based logic. Augmenting it with AI makes the app unique and provides a smooth user experience. As discussed in class, LLMs excel at reasoning and synthesis tasks, where rigid algorithms fall short. The concept also illustrates a rough-edged problem, which is a domain LLMs are good at.
+For Neo (the name of my app), option 3 is the optimal choice and will provide the best user experience. We can see that the `AdaptiveSchedule` concept is uniquely suited for AI augmentation because its core function is to continuously adjusting schedules based on real-world deviations, which requires flexible reasoning, contextual synthesis, and adaptive prioritization that go beyond deterministic rule-based logic. Augmenting it with AI makes the app unique and provides a smooth user experience, because users no longer need to do the cumbersome work themselves. As discussed in class, LLMs excel at reasoning and synthesis tasks, where rigid algorithms fall short. The concept also illustrates a rough-edged problem, which is a domain LLMs are good at. Thus, it is a good choice to augment `AdaptiveSchedule` concept with AI.
 
 Below is the augmented concept:
 
@@ -62,28 +61,33 @@ Below is the augmented concept:
 concept AdaptiveSchedule [User, Task, Schedule, Routine]
 
 purpose
-    keeps the schedule responsive by moving, canceling, or creating tasks scheduled at future time blocks when reality diverges to ensure that highest priority tasks are achieved first, optimizing productivity
+   keeps the schedule responsive by moving, canceling, or creating tasks scheduled at future time blocks when reality diverges, ensuring that highest-priority tasks are achieved first while preserving user productivity.
+
 
 principle
-    when actual sessions overruns or diverges from the plan, the adaptive scheduler adjusts subsequent planned tasks onto adaptive time blocks;
-    then, the user can observe the adaptively adjusted schedule
+   when actual sessions overrun or diverge from the plan, the adaptive scheduler adjusts subsequent planned tasks into adaptive time blocks;
+   this process can operate in two modes:
+   (1) Manual mode — user reviews deviations and adjusts future time blocks;
+   (2) AI-augmented mode — an LLM analyzes deviations, infers likely causes, and automatically proposes a revised schedule for future tasks;
 
 state
-    a set of AdaptiveBlocks with
-        a timeBlockId String // this is a unique id
-        an owner User
-        a start Time
-        an end Time
-        a taskSet set of Task
+   a set of AdaptiveBlocks with
+      a timeBlockId String // this is a unique id
+      an owner User
+      a start Time
+      an end Time
+      a taskSet set of Tasks
 
-    a set of droppedTasks with
-        a taskId String
+   a set of droppedTasks with
+      a task Task
+      an owner User
 
 invariants
-   every adaptive block has a unique timeBlockId
-   start time is before end time
-   each adaptive block has exactly one owner
-   dropped task IDs are valid task identifiers
+   every adaptive block has a unique timeBlockId;
+   start time is of every adaptive block is before end time;
+   every adaptive block has exactly one owner;
+   only one adaptive block exists given (owner, start, end);
+   every task in each adaptive block's taskSet is unique;
 
 actions
    addTimeBlock (owner: User, start: Time, end: Time) : (timeBlockId: String)
@@ -94,24 +98,32 @@ actions
       effect:
          create a new adaptive time block b with this owner, start, and end;
          assign b an empty set of tasks;
-         return the unique timeBlockId of b;
-
-   createAdaptiveSchedule (owner: User, tasks: set of Task, schedule: Schedule, routine: Routine)
+         return b.timeBlockId;
+   
+   assignAdaptiveSchedule (owner: User, timeBlockId: String, task: Task):
+      requires:
+         adaptive block exists with the matching owner and timeBlockId;
+         task not in this adaptive block's taskSet;
       effect:
-         based on (task, schedule, and routine), adaptively generate a new schedule of tasks by assigning active tasks to taskSet of the corresponding AdaptiveBlock under this owner
+         add task to this adaptive block's taskSet;
 
-   async requestAdaptiveScheduleAI (owner: User, task: Task, schedule: Schedule, routine: Routine, preference: Preference, llm: GeminiLLM): (adaptiveBlock: AdaptiveBlock)
+   async requestAdaptiveScheduleAI (owner: User, tasks: set of Tasks, schedule: Schedule, routine: Routine, preference: Preference, llm: GeminiLLM): (adaptiveBlock: AdaptiveBlock, droppedTasks: set of Tasks)
       effect:
-         AI-assisted adaptive scheduling where LLM analyzes the difference between schedule and routine;
-         reasons about possible causes of deviation;
-         considers hardwired user preferences;
-         considers the original planned schedule of tasks;
-         considers information provided by attributes in tasks (priority, duration, deadline, dependencies, etc.);
-         considers other schedules represented by adaptive blocks owned by the user;
-         after reasoning, the LLM assigns tasks to one or more adaptive blocks under this owner;
-         if time is insufficient, prioritizes tasks with urgent deadlines or higher priority (1-2);
-         drops lower priority tasks (3-5) or tasks without urgent deadlines, storing their IDs in droppedTaskIds;
-         returns the set of all AdaptiveBlocks owned by the user;
+         1. sends a structured prompt to the LLM summarizing current tasks, planned schedule, actual routine, and user preferences;
+         2. LLM analyzes discrepancies between plan and routine, infers causes (e.g., overruns, interruptions, missing focus periods).
+         3. LLM generates an adaptive schedule proposal, and it:
+              - assigns or splits tasks across AdaptiveBlocks,
+              - respects task deadlines, durations, and dependencies,
+              - applies user preferences,
+              - considers other adaptive blocks owned by the user,
+              - drops tasks if time is insufficient.
+         4. LLM returns a structured JSON response including:
+              - adaptiveBlocks (with start/end times and assigned tasks)
+              - droppedTasks (tasks removed due to insufficient time)
+              - brief reasoning summary for user transparency.
+         5. The system validates the output for logical consistency (e.g., no overlapping blocks, no hallucinated tasks).
+         6. The system assign each task to the LLM suggested adaptive block (similar to assignAdaptiveSchedule action). The system also add the droppedTasks to state.
+         7. Return the set of all AdaptiveBlocks under this owner. Also return the set of all droppedTasks under this owner.
 
    unassignBlock (owner: User, task: Task, timeBlockId: String)
       requires:
@@ -126,21 +138,21 @@ actions
         effect:
             returns all adaptive blocks owned by the user
 
-   getDroppedTaskIds(owner: User): (set of String)
+   getDroppedTask(owner: User): (set of droppedTasks)
       requires:
-         exists at least one adaptive block with this owner
+         exists at least one dropped task with this user
       effect:
-         returns all dropped task IDs for the user (tasks that couldn't be scheduled due to insufficient time)
-
+         returns all dropped task for the user (tasks that couldn't be scheduled due to insufficient time)
 ```
 
 ### Note
 
-Here are some notes that worth highlighting:
+Here are some notes that worth highlighting about our AI-augmented concept:
 
-1. For the purpose of separation of concerns and maintaining modularity between concepts, AdaptiveSchedule takes Task, Schedule, Routine as generic types. This is because the specific concept within these types will not influence how AdaptiveSchedule works. However, since we are implementing the concept in this assignment, it is worth mentioning what these types are.
+1. For the purpose of separation of concerns and maintaining modularity between concepts, AdaptiveSchedule takes Task, Schedule, Routine as generic types. This is because the specific concept that manages these types will not influence how AdaptiveSchedule works. However, since we are implementing the concept in code for this assignment, it is worth mentioning what these types are. In this way, we can code these types the same structure as how they were defined, so that it is easier to implement the syncs for later assignments.
 
-   - Task refers to the set of tasks specified by the user. It is managed under the TaskCatalog concept and has the following structure:
+   - Task refers to the set of tasks specified by the user. It is managed under the`TaskCatalog` concept and has the following structure:
+
      ```
      a set of Tasks with
          an owner User
@@ -157,7 +169,8 @@ Here are some notes that worth highlighting:
          a postDependence set of Tasks (optional) // tasks that depend on it
          a note String (optional)
      ```
-   - Schedule refers to the set of time blocks, and it is the user's intended/planned allocation of tasks under each time. It is managed under the ScheduleTime concept and has the following structure:
+   - Schedule refers to the set of time blocks, and it is the user's intended/planned allocation of tasks under each time block. It is managed under the ScheduleTime concept and has the following structure:
+
      ```
      a set of TimeBlocks with
          a timeBlockId String // this is a unique id
@@ -167,8 +180,9 @@ Here are some notes that worth highlighting:
          a taskIdSet set of Strings // contains unique ids
      ```
    - Routine refers to the set of sessions, and it is the user's actual recorded routine of the day (i.e., what they actually did). It is managed under the RoutineLog concept and has the following structure:
-     ```
-     a set of Sessions with
+
+      ```
+      a set of Sessions with
          an owner User
          a sessionName String
          a sessionId String    \\ this is an unique ID
@@ -178,16 +192,15 @@ Here are some notes that worth highlighting:
          an end Time (optional)
          a linkedTask Task (optional)
          an interruptReason String (optional)
-     ```
+      ```
 
-2. When the user is adaptively planning their future schedule, they are already provided all information (a set of all Tasks, Schedule, Routine) in the frontend. If we want the LLM to generate an adaptive schedule, we first provide it all the necessary information. These information are needed because:
+2. When the user is adaptively planning their future schedule, they are already provided all information (a set of all Tasks, Schedule, Routine) in the frontend. If we want the LLM to generate an adaptive schedule, we first provide it all the necessary information it should consider as reference. These sets of information are needed because:
+   1. The LLM needs to know what are the incomplete tasks and pending plans. That's why we give it all incomplete Tasks and Schedule.
+   2. To achieve better adaptive scheduling that meets the purpose of Neo (my app), the LLM needs to understand what might be the reasons that caused the user's originally planned schedule to deviate from their actual routine. The users can understand so from the compare view in the app (see my previous assignment), but the LLM can only know if it is given the recorded set of Sessions (i.e., Routine).
 
-   1. The LLM needs to know what are the incomplete tasks and pending plans. That's why we give it some incomplete task and Schedule.
-   2. To achieve better adaptive scheduling that meets the purpose of my app, the LLM needs to understand what might be the reasons that caused the user's originally planned schedule to deviate from their actual routine. The users can understand so from the compare view in the app (see my previous assignment), but the LLM can only know if it is given the recorded set of Sessions.
+3. Preference is a list of hardwired user preferences about the adaptive schedule. In the actual app, we might have another AI extracting and generating the user preference based on the user's previous schedule and recorded sessions. But for now, for the sake of simplicity, we assume that these preferences are hardwired (and the users will input them in the frontend, as shown in the UI below).
 
-3. Preference is a list of hardwired user preferences about the schedule. In the actual app, we might have another AI extracting and generating the user preference based on their previous schedule and recorded sessions. But for now, for the sake of simplicity, we assume that these preferences are hardwired (and the users will input them in the frontend).
-
-4. By integrating an LLM-powered action `requestAdaptiveScheduleAI`, the concept achieves a boost in capacity. The LLM acts as a mixed-initiative partner, automating what it can (adaptively rescheduling tasks) while still allowing the user to retain final control.
+4. By integrating an LLM-powered action `requestAdaptiveScheduleAI`, the concept achieves a boost in capacity. The LLM acts as a mixed-initiative partner, automating what it can (adaptively rescheduling tasks) while still allowing the user to retain final control (by making edits through `assignAdaptiveSchedule` and `unassignBlock` actions).
 
 5. I did not add the invariant constraint that only one task is allowed for an adaptive block. This is because some times the user may hope to execute multiple tasks concurrently. For example, they can schedule do laundry and do homework both at 4pm-5pm, because they only need to put laundry in the laundry machine, then go back to work. However, I will add in the prompt to the LLM that, unless the tasks can be executed concurrently, don't schedule multiple tasks under the same time block.
 
@@ -201,19 +214,18 @@ Instead of punishing users for failing to "stick to the plan" and leave them wit
 
 Last time, I made two UI designs, a low fidelity wireframe to help understand the key components in the interface, and a more detailed UI design to show more details that are needed to optimize the user experience. I will display both versions here:
 
-![compare](assets/comparison.png)
+![compare](assets/compare.png)
 
 ## AI augmentation interaction and user journey
-
-The user begins their user interaction with `AdaptiveSchedule` after they land on the Compare page, where they can visually inspect discrepancies between their planned schedule and actual routine. Upon noticing misalignment and realized that they might not be able to finish their top priorities if they stick to their original plan, they click on the "Optimize Schedule" button. This triggers a pop-up panel prompting them to input any custom scheduling preferences (e.g., "I need focus time after dinner" or "avoid long sessions tonight"). Once the user confirms, the system sends some contextual inputs to the LLM: the current incomplete Tasks, the planned Schedule, and the logged Routine (to understand what each specifically mean, check the previous section or annotations in the sketch below), along with any optional user preferences.
+Friday is an user of Neo. Friday begins his user interaction with `AdaptiveSchedule` after he lands on the Compare page, where he can visually inspect discrepancies between his planned schedule and actual routine. Upon noticing misalignments and realized that he might not be able to finish his top priorities if he stick to his original plan, Friday clicks on the "Optimize Schedule" button. This triggers a pop-up panel prompting him to input any custom scheduling preferences (e.g., "I need focus time after dinner" or "avoid long sessions tonight"). Once Friday confirms, the system sends some contextual inputs to the LLM: the current incomplete Tasks, the planned Schedule, and the logged Routine (to understand what each specifically mean, check the previous section or annotations in the sketch below), along with any optional user preferences Friday inputs.
 
 The LLM then reasons through the provided context. It compares the original plan with the actual routine, infers causes of deviation (like fatigue, over-ambitious goals, or interruptions), and proposes an adaptive schedule for the rest of the day. The new adaptive schedule blocks are then shown in the timeline (as red blocks in the sketch below), clearly labeled and positioned under the updated time slots. If any error occurs while the LLM is generating the adaptive schedule, an error pop-up is shown (see below).
 
-Otherwise, if no error occurs, the user can review these adaptive suggestions generated by the LLM, delete a proposed block, or drag and drop it to a different time slot for manual adjustment to make sure that users have control over the AI-generated outputs.
+Otherwise, if no error occurs, Friday can review these adaptive suggestions generated by the LLM, delete a proposed block, or drag and drop it to a different time slot for manual adjustment to make sure that the user have control over the AI-generated outputs.
 
-If the user confirms the adaptive plan, the plan gets merged seamlessly into the main schedule in the Today view (for more information, check my assignment 2), where users can look at the pending plans/schedules for the rest of the day.
+If Friday confirms the adaptive plan, the plan gets merged seamlessly into the main schedule in the Today view (for more information, check my assignment 2), where Friday can look at the pending plans/schedules for the rest of the day.
 
-This end-to-end interaction demonstrates mixed-initiative collaboration, where the AI provides intelligent, context-aware support, while the user remains the final decision-maker.
+This end-to-end interaction demonstrates mixed-initiative collaboration, where the AI provides intelligent, context-aware support, while the Friday remains the final decision-maker.
 
 ![ai](assets/ui.png)
 
@@ -222,10 +234,10 @@ And if error occurs (i.e., during edge cases), the UI will show the following po
 ![error](assets/error.png)
 
 # Part three: Implement the concept
+Run `npm install`, then `npm start` to run my code and see some example cases! You can find my augmented concept in `adaptiveschedule.spec` (which contains the same version as the concept in this README), the main backend code in `adaptiveschedule.ts`, the test cases in `adaptiveschedule-tests.ts`, and the LLM wrapper in `gemini-llm.ts`. 
 
 ## Prompt-v1
-
-When first implementing the concept, I used a basic prompt (prompt-v1). I further refined this prompt based on edge test cases I experimented with later.
+When first implementing the concept, I used a basic prompt (`Prompt-v1`). I further refined this prompt based on edge test cases I experimented with, which will be covered in later sections. Here is my initial version:
 
 ```
 You are a helpful AI assistant that creates optimal adaptive schedules for users based on task analysis, planned schedules, actual routines, and user preferences.
@@ -278,7 +290,6 @@ Return your response as a JSON object with this exact structure:
 }
 
 Return ONLY the JSON object, no additional text.`;
-
 ```
 
 # Part four: Explore richer test cases and prompts
@@ -287,7 +298,7 @@ I experimented with four test cases, three of them involved the LLM call, and th
 
 ## Test 0: Manual Adaptive Time Block Creation
 
-This test case shows how the test case runs without LLM (i.e., the user does the adaptive scheduling process themselves).
+This test case shows how the test case runs without LLM (i.e., the user does the adaptive scheduling process themselves). I set up the scenario where the user allocates two tasks onto two adaptove blocks.
 
 ```
 🧪 TEST CASE 1: Manual Time Block Creation
@@ -315,16 +326,14 @@ This test case shows how the test case runs without LLM (i.e., the user does the
 
 ## Test 1: Basic AI Adaptive Scheduling
 
-This schedule has no concurrent/conflicting plans, dependencies, or unfinished tasks. Prompt-v1 works well in this case.
+This is a simple scenario with no concurrent/conflicting plans, dependencies, or unfinished tasks. The user only wants to adaptively schedule the future tasks. Prompt-v1 works well in this case.
 
-Overview
-
+Task overview
 ```
-⏰ Current time (fixed for testing): 2025-10-04T13:00:00Z (1:00 PM) \
-📝 Unfinished tasks to schedule: 5 \
-📅 Original planned schedule blocks: 5 \
-📊 Actual routine sessions so far: 2 \
-🤖 Requesting adaptive schedule from Gemini AI... \
+⏰ Current time (fixed for testing): 2025-10-04T13:00:00Z (1:00 PM)
+📝 Unfinished tasks to schedule: 5
+📅 Original planned schedule blocks: 5
+📊 Actual routine sessions so far: 2
 ```
 
 📅 Original Schedule
@@ -398,6 +407,11 @@ Overview
    Block ID: adaptive-block-4
    Tasks:
    - Study Spanish (Priority: 4, Duration: 30 min)
+
+
+🗑️ Dropped Tasks:
+==========================================
+   ✅ No tasks were dropped - all tasks successfully scheduled!
 ```
 
 ## Test 2: Task-dependencies AI Adaptive Scheduling

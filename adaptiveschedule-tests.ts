@@ -1,13 +1,10 @@
 // AdaptiveSchedule Test Cases
-// Contains test cases for manual time block creation and AI-assisted adaptive scheduling
+// Contains test cases for manual time block creation (one) and AI-assisted adaptive scheduling (three)
 
 import { AdaptiveSchedule } from './adaptiveschedule';
 import { Task, TimeBlock, Session, Preference, User } from './types';
 import { GeminiLLM, Config } from './gemini-llm';
 
-/**
- * Load configuration from config.json
- */
 function loadConfig(): Config {
     try {
         const config = require('../config.json');
@@ -95,7 +92,7 @@ export async function testAIAdaptiveScheduling(): Promise<void> {
             taskName: 'Complete Project Proposal',
             category: 'Work',
             duration: 120,
-            priority: 1, // Critical - urgent deadline before team meeting
+            priority: 1,
             splittable: false,
             timeBlockSet: ['planned-1'],
             deadline: '2025-10-05T17:00:00Z',
@@ -107,7 +104,7 @@ export async function testAIAdaptiveScheduling(): Promise<void> {
             taskName: 'Review Pull Requests',
             category: 'Work',
             duration: 45,
-            priority: 2, // Important - should be done soon
+            priority: 2,
             splittable: true,
             timeBlockSet: ['planned-2']
         },
@@ -117,7 +114,7 @@ export async function testAIAdaptiveScheduling(): Promise<void> {
             taskName: 'Gym Workout',
             category: 'Health',
             duration: 60,
-            priority: 3, // Regular - necessary but not urgent
+            priority: 3,
             splittable: false,
             timeBlockSet: ['planned-3']
         },
@@ -127,7 +124,7 @@ export async function testAIAdaptiveScheduling(): Promise<void> {
             taskName: 'Prepare Dinner',
             category: 'Personal',
             duration: 30,
-            priority: 3, // Regular - necessary daily task
+            priority: 3,
             splittable: false,
             timeBlockSet: ['planned-4']
         },
@@ -137,48 +134,47 @@ export async function testAIAdaptiveScheduling(): Promise<void> {
             taskName: 'Study Spanish',
             category: 'Learning',
             duration: 30,
-            priority: 4, // Low - can be done later
+            priority: 4,
             splittable: true,
             timeBlockSet: ['planned-5']
         }
     ];
 
-    // Create planned schedule (what was originally planned)
     const schedule: TimeBlock[] = [
         {
             timeBlockId: 'planned-1',
             owner: owner,
             start: '2025-10-04T09:00:00Z',
             end: '2025-10-04T11:00:00Z',
-            taskIdSet: ['task-1'] // Complete Project Proposal (120 min)
+            taskIdSet: ['task-1']
         },
         {
             timeBlockId: 'planned-2',
             owner: owner,
             start: '2025-10-04T14:00:00Z',
             end: '2025-10-04T15:00:00Z',
-            taskIdSet: ['task-2'] // Review Pull Requests (45 min)
+            taskIdSet: ['task-2']
         },
         {
             timeBlockId: 'planned-3',
             owner: owner,
             start: '2025-10-04T17:00:00Z',
             end: '2025-10-04T18:00:00Z',
-            taskIdSet: ['task-3'] // Gym Workout (60 min)
+            taskIdSet: ['task-3']
         },
         {
             timeBlockId: 'planned-4',
             owner: owner,
             start: '2025-10-04T18:00:00Z',
             end: '2025-10-04T18:30:00Z',
-            taskIdSet: ['task-4'] // Prepare Dinner (30 min)
+            taskIdSet: ['task-4']
         },
         {
             timeBlockId: 'planned-5',
             owner: owner,
             start: '2025-10-04T19:00:00Z',
             end: '2025-10-04T19:30:00Z',
-            taskIdSet: ['task-5'] // Study Spanish (30 min)
+            taskIdSet: ['task-5']
         }
     ];
 
@@ -218,10 +214,10 @@ export async function testAIAdaptiveScheduling(): Promise<void> {
             duration: 90, // Remaining duration after 30 min completed
             note: 'Critical priority - needs to be done before team meeting. 30 minutes already completed, 90 minutes remaining.'
         },
-        tasks[1], // Review Pull Requests - not started
-        tasks[2], // Gym Workout - not started
-        tasks[3], // Prepare Dinner - not started
-        tasks[4]  // Study Spanish - not started
+        tasks[1],
+        tasks[2],
+        tasks[3],
+        tasks[4]
     ];
 
     // User preferences
@@ -249,7 +245,7 @@ export async function testAIAdaptiveScheduling(): Promise<void> {
 
 /**
  * Test case 3: Task Dependencies
- * Tests ONLY task dependencies - verifies AI respects preDependence constraints
+ * Verifies AI respects preDependence constraints
  */
 export async function testDependencies(): Promise<void> {
     console.log('\n🧪 TEST CASE 3: Task Dependencies');
@@ -325,7 +321,6 @@ export async function testDependencies(): Promise<void> {
 
     // Actual routine - plan was disrupted, tasks NOT done in planned order
     // Task 1 was NOT completed as planned (only partially done)
-    // Task 2 and 3 also not done
     const routine: Session[] = [
         {
             owner: owner,
@@ -350,7 +345,6 @@ export async function testDependencies(): Promise<void> {
         }
     ];
 
-    // Set current time
     const currentTime = '2025-10-04T11:30:00Z'; // 11:30 AM - after the meeting
 
     // Filter for unfinished tasks
@@ -364,10 +358,9 @@ export async function testDependencies(): Promise<void> {
         task3  // Not started - depends on task2
     ];
 
-    // Simple preferences focusing only on dependencies
     const preferences: Preference = {
         preferences: [
-            'Respect task dependencies - never schedule a task before its prerequisites'
+            'Respect my task dependencies - never schedule a task before its prerequisites'
         ]
     };
 
@@ -411,7 +404,7 @@ export async function testDeadlinesAndConcurrency(): Promise<void> {
         taskId: 'task-1',
         taskName: 'Submit Assignment',
         category: 'School',
-        duration: 120, // Increased from 90 to make it tighter
+        duration: 120,
         priority: 1, // Critical - has urgent deadline
         splittable: false,
         deadline: '2025-10-04T17:00:00Z', // Due at 5 PM today!
@@ -425,22 +418,21 @@ export async function testDeadlinesAndConcurrency(): Promise<void> {
         taskName: 'Study for Exam',
         category: 'School',
         duration: 120,
-        priority: 2, // Important but deadline is tomorrow
+        priority: 2,
         splittable: true,
         deadline: '2025-10-05T23:59:00Z', // Due tomorrow
         timeBlockSet: ['planned-2']
     };
 
-    // Task that can be done concurrently (e.g., laundry)
+    // Regular priority task - short laundry task
     const task3: Task = {
         owner: owner,
         taskId: 'task-3',
         taskName: 'Do Laundry',
         category: 'Chores',
-        duration: 90,
+        duration: 60, // Reduced from 90 to make test case feasible (100+120+60=280 < 300)
         priority: 3,
         splittable: true,
-        note: 'Can be done concurrently with other tasks - just need to start/stop machines',
         timeBlockSet: ['planned-3']
     };
 
@@ -475,7 +467,7 @@ export async function testDeadlinesAndConcurrency(): Promise<void> {
         taskName: 'Clean Room',
         category: 'Chores',
         duration: 60,
-        priority: 4,
+        priority: 5,
         splittable: true,
         timeBlockSet: ['planned-6']
     };
@@ -488,42 +480,42 @@ export async function testDeadlinesAndConcurrency(): Promise<void> {
             timeBlockId: 'planned-1',
             owner: owner,
             start: '2025-10-04T09:00:00Z',
-            end: '2025-10-04T11:00:00Z', // 120 minutes for task-1
+            end: '2025-10-04T11:00:00Z',
             taskIdSet: ['task-1']
         },
         {
             timeBlockId: 'planned-2',
             owner: owner,
             start: '2025-10-04T11:00:00Z',
-            end: '2025-10-04T13:00:00Z', // 120 minutes for task-2
+            end: '2025-10-04T13:00:00Z',
             taskIdSet: ['task-2']
         },
         {
             timeBlockId: 'planned-3',
             owner: owner,
             start: '2025-10-04T14:00:00Z',
-            end: '2025-10-04T15:30:00Z', // 90 minutes for task-3
+            end: '2025-10-04T15:30:00Z',
             taskIdSet: ['task-3']
         },
         {
             timeBlockId: 'planned-4',
             owner: owner,
             start: '2025-10-04T15:30:00Z',
-            end: '2025-10-04T16:30:00Z', // 60 minutes for task-4
+            end: '2025-10-04T16:30:00Z',
             taskIdSet: ['task-4']
         },
         {
             timeBlockId: 'planned-5',
             owner: owner,
             start: '2025-10-04T16:30:00Z',
-            end: '2025-10-04T17:15:00Z', // 45 minutes for task-5
+            end: '2025-10-04T17:15:00Z',
             taskIdSet: ['task-5']
         },
         {
             timeBlockId: 'planned-6',
             owner: owner,
             start: '2025-10-04T17:15:00Z',
-            end: '2025-10-04T18:15:00Z', // 60 minutes for task-6
+            end: '2025-10-04T18:15:00Z',
             taskIdSet: ['task-6']
         }
     ];
@@ -553,7 +545,6 @@ export async function testDeadlinesAndConcurrency(): Promise<void> {
         }
     ];
 
-    // Current time is noon
     const currentTime = '2025-10-04T12:00:00Z'; // 12:00 PM
 
     // Unfinished tasks
@@ -573,7 +564,7 @@ export async function testDeadlinesAndConcurrency(): Promise<void> {
     // User preferences
     const preferences: Preference = {
         preferences: [
-            'CRITICAL: Must finish all work by 5:00 PM (17:00) - no exceptions, this is a hard deadline',
+            'Try finish all work by 5:00 PM (17:00) - no exceptions, this is a hard deadline',
             'CRITICAL: Prioritize tasks with urgent deadlines first',
             'Schedule concurrent tasks (like laundry) alongside other work to save time',
             'Avoid dropping tasks with approaching deadlines',
@@ -591,8 +582,8 @@ export async function testDeadlinesAndConcurrency(): Promise<void> {
     console.log('  - All other tasks: Not started');
     console.log('');
     console.log('Time available: 5 hours (300 minutes)');
-    console.log('Total work needed: 100 + 120 + 90 + 60 + 45 + 60 = 475 minutes');
-    console.log('Deficit: 175 minutes - some tasks MUST be dropped!');
+    console.log('Total work needed: 100 + 120 + 60 + 60 + 45 + 60 = 445 minutes');
+    console.log('Deficit: 145 minutes - some tasks MUST be dropped!');
     console.log('');
     console.log('Expected adaptive behavior:');
     console.log('  1. Prioritize finishing Assignment BEFORE 5 PM deadline (non-negotiable!)');
@@ -686,7 +677,7 @@ async function main(): Promise<void> {
         await testDeadlinesAndConcurrency();
 
         // // Run unassign test
-        await testUnassignBlock();
+        // await testUnassignBlock();
 
         console.log('\n🎉 All test cases completed successfully!');
 

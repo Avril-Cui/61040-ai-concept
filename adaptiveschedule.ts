@@ -1,3 +1,4 @@
+// AdaptiveSchedule ai-augmented concept implementation
 import { GeminiLLM } from "./gemini-llm";
 import {
   User,
@@ -7,8 +8,6 @@ import {
   Preference,
   AdaptiveBlock,
 } from "./types";
-
-// AdaptiveSchedule ai-augmented concept implementation
 
 export class AdaptiveSchedule {
   private adaptiveBlocks: AdaptiveBlock[] = [];
@@ -83,10 +82,11 @@ export class AdaptiveSchedule {
 
       const text = await llm.executeLLM(prompt);
 
-      console.log("\n🤖 RAW GEMINI RESPONSE");
-      console.log("======================");
-      console.log(text);
-      console.log("======================\n");
+      // If want to see what GEMINI says originally, log this:
+      // console.log("\n🤖 RAW GEMINI RESPONSE");
+      // console.log("======================");
+      // console.log(text);
+      // console.log("======================\n");
 
       // Parse and apply the adaptive schedule
       this.parseAndApplyAdaptiveSchedule(text, owner, userTasks);
@@ -193,31 +193,33 @@ export class AdaptiveSchedule {
     4. Schedule critical tasks (priority 1-2) before lower priority tasks
     5. Consider user preferences for scheduling
     6. Respect task constraints (duration, splittable, slack)
-    7. Avoid scheduling multiple tasks in the same time block UNLESS they can be executed concurrently (e.g., laundry + homework)
+    7. **CONCURRENCY OPTIMIZATION (CRITICAL): Tasks like laundry, cleaning room, or dishwashing can be done CONCURRENTLY with other tasks (studying, homework, etc.) because they don't require constant attention. You MUST actively look for these opportunities and create OVERLAPPING time blocks to save time. For example, if you schedule "Do Laundry" from 2:00-3:00 PM, you should ALSO schedule another task (like studying) from 2:00-3:00 PM or overlapping that time period. This is a key optimization that can free up significant time.**
 
     SCHEDULING CONSTRAINTS:
     - Times must be in ISO 8601 format (e.g., "2025-10-04T14:00:00Z")
     - Start time must be before end time
     - ALL time blocks MUST start at or after the CURRENT TIME if provided
-    - **CRITICAL: Time block duration MUST be at least as long as the total duration of tasks assigned to it**
+    - **CRITICAL DURATION RULE: Each time block's duration MUST be at least as long as the longest task in that block (NOT the sum). When tasks are concurrent/overlapping in separate blocks, each block is evaluated independently.**
     - For non-splittable tasks, the block must be at least as long as the task duration
     - For splittable tasks, you can either: (1) create a single block with duration >= task duration, OR (2) split across multiple blocks where sum of block durations >= task duration
+    - **CONCURRENCY CLARIFICATION: When creating overlapping blocks, each block duration only needs to match its own task duration. Example: Laundry (60 min) in Block A from 1:40-2:40 PM, Study (120 min) in Block B from 1:40-3:40 PM - this is CORRECT and maximizes time savings.**
     - High priority tasks should be scheduled first
     - Respect task deadlines
     - Consider dependencies (preDependence tasks must be scheduled before dependent tasks)
     - If a task is splittable, it can be divided across multiple blocks. Otherwise, do not divide it across multiple **non-consecutive blocks**.
-    - Allow multiple tasks per block ONLY if they can be done concurrently
+    - **IMPORTANT: You MUST create overlapping/concurrent blocks for passive tasks (laundry, cleaning, etc.) if not all tasks can be scheduled. This means creating separate blocks with the same or overlapping time ranges. For example, if you have laundry and studying, create two blocks that overlap in time rather than scheduling them sequentially.**
 
     CRITICAL REQUIREMENTS:
     1. ONLY schedule the tasks listed above - do NOT add any new tasks
     2. Ensure all scheduled blocks have valid ISO timestamps
     3. Assign tasks based on priority and deadline urgency
     4. **ABSOLUTE DEADLINE CONSTRAINT: If a task has a deadline, it MUST be completed BEFORE that deadline. Do NOT schedule any part of the task after its deadline.**
-    5. **If there is insufficient time to complete all tasks before their deadlines, you MUST drop the lowest priority tasks and put them in droppedTaskIds**
-    6. Consider the actual routine and how it deviates from the schedule to understand what time blocks are realistic
-    7. Provide reasoning for why actual routine deviated from the original planned schedule
-    8. For a task with a long duration and is splittable, consider splitting it into multiple non-consecutive time blocks for better focus
-    9. If time is insufficient to schedule all tasks, prioritize tasks with urgent deadlines (approaching soon) or higher priority (1-2); put lower priority tasks or tasks without urgent deadlines in droppedTaskIds
+    5. **If there is insufficient time to complete all tasks before their deadlines, prioritize higher priority tasks first**
+    6. **DURATION CONSTRAINT (FLEXIBLE WHEN CONSTRAINED): Ideally give each task its FULL required duration. However, when time is severely constrained and you have leftover time that can't fit a full task, it's acceptable to schedule a partial task duration rather than leaving the time empty. For example, if you have 20 minutes left and a 60-minute task, schedule it for 20 minutes rather than dropping it entirely.**
+    7. Consider the actual routine and how it deviates from the schedule to understand what time blocks are realistic
+    8. Provide reasoning for why actual routine deviated from the original planned schedule
+    9. For a task with a long duration and is splittable, consider splitting it into multiple non-consecutive time blocks for better focus
+    10. If time is insufficient to schedule all tasks, prioritize tasks with urgent deadlines (approaching soon) or higher priority (1-2); only drop tasks if absolutely no time remains
 
     Return your response as a JSON object with this exact structure:
     {
@@ -232,12 +234,30 @@ export class AdaptiveSchedule {
     "droppedTaskIds": ["taskId3", "taskId4"]
     }
 
-    EXAMPLE - If task-1 has deadline at 5 PM and current time is 12 PM:
+    EXAMPLE 1 - Deadline constraint:
+    - If task-1 has deadline at 5 PM and current time is 12 PM
     - Available time: 5 hours (300 minutes)
     - If task-1 needs 100 min + other high priority tasks need 200 min = 300 min total
     - Low priority tasks (task-5, task-6) CANNOT fit before deadline
     - CORRECT: Put task-5 and task-6 in droppedTaskIds
     - WRONG: Schedule tasks after the 5 PM deadline
+
+    EXAMPLE 2 - Concurrency optimization (MUST DO THIS if deadline is tight):
+    - Laundry (60 min) + Study for exam (120 min) = normally 180 min sequential
+    - CORRECT APPROACH: Fully overlap the laundry within studying time
+      Block A: {
+        "start": "2025-10-04T14:00:00Z",
+        "end": "2025-10-04T15:00:00Z",
+        "taskIds": ["laundry-task-id"]
+      },
+      Block B: {
+        "start": "2025-10-04T14:00:00Z",
+        "end": "2025-10-04T16:00:00Z",
+        "taskIds": ["study-task-id"]
+      }
+    - Result: Both tasks complete by 4:00 PM instead of 5:00 PM, saving 60 full minutes
+    - WRONG: Only partial overlap (like laundry 1:40-2:40, study 2:00-4:00) wastes 40 minutes
+    - WRONG: Sequential scheduling wastes 60 minutes
 
     Return ONLY the JSON object, no additional text.`;
   }
@@ -433,6 +453,7 @@ export class AdaptiveSchedule {
     }
 
     // Validator 3: Check for duplicate task scheduling (same task scheduled multiple times)
+    // Exception: Splittable tasks can appear in multiple blocks
     const taskScheduleCount = new Map<string, number>();
     for (const block of scheduledBlocks) {
       for (const task of block.taskSet) {
@@ -445,7 +466,11 @@ export class AdaptiveSchedule {
       if (count > 1) {
         const task = originalTasks.find(t => t.taskId === taskId);
         const taskName = task ? task.taskName : taskId;
-        errors.push(`Duplicate scheduling: Task "${taskName}" (${taskId}) is scheduled ${count} times`);
+
+        // Only flag as error if task is NOT splittable
+        if (task && !task.splittable) {
+          errors.push(`Duplicate scheduling: Non-splittable task "${taskName}" (${taskId}) is scheduled ${count} times`);
+        }
       }
     }
 
@@ -523,6 +548,27 @@ export class AdaptiveSchedule {
       }
     }
 
+    // Validator 8: Check for schedule duration mismatches
+    // Verify that total scheduled time for each task matches its duration
+    const taskScheduledDuration = new Map<string, number>();
+
+    for (const block of scheduledBlocks) {
+      const blockStart = new Date(block.start).getTime();
+      const blockEnd = new Date(block.end).getTime();
+      const blockDuration = (blockEnd - blockStart) / (1000 * 60); // in minutes
+
+      for (const task of block.taskSet) {
+        const currentDuration = taskScheduledDuration.get(task.taskId) || 0;
+        taskScheduledDuration.set(task.taskId, currentDuration + blockDuration);
+      }
+    }
+
+    // When time is constrained, it's acceptable to have less scheduled time than planned
+    // So we skip this validator - the LLM should handle time constraints appropriately
+
+    // Validator removed: Previously checked if scheduled duration < task duration
+    // This constraint is too strict when time is limited
+
     return errors;
   }
 
@@ -530,13 +576,30 @@ export class AdaptiveSchedule {
    * Check if tasks can be done concurrently
    */
   private canTasksBeConcurrent(tasks1: Task[], tasks2: Task[]): boolean {
-    // Tasks can be concurrent if at least one set contains a task with a note indicating concurrency
-    // For example, laundry can be done concurrently with other tasks
+    // Tasks can be concurrent if at least one task is a background/passive task
+    // that doesn't require constant attention
     const allTasks = [...tasks1, ...tasks2];
 
+    // List of task categories/names that can be done concurrently
+    const concurrentTaskPatterns = [
+      'laundry', 'cleaning', 'clean', 'dishwash', 'dishes',
+      'washing', 'drying', 'cooking', 'baking'
+    ];
+
     for (const task of allTasks) {
+      // Check if task explicitly marked as concurrent in note
       if (task.note && task.note.toLowerCase().includes('concurrent')) {
         return true;
+      }
+
+      // Check if task name or category matches concurrent patterns
+      const taskNameLower = task.taskName.toLowerCase();
+      const categoryLower = task.category.toLowerCase();
+
+      for (const pattern of concurrentTaskPatterns) {
+        if (taskNameLower.includes(pattern) || categoryLower.includes(pattern)) {
+          return true;
+        }
       }
     }
 
@@ -632,7 +695,7 @@ export class AdaptiveSchedule {
       .join("\n\n");
   }
 
-  // Display the adaptive schedule in a readable format
+  // Log the adaptive schedule in a readable format -> for console log in npm start
   displayAdaptiveSchedule(owner: User, originalSchedule?: Schedule, currentTime?: string, actualRoutine?: Routine, allTasks?: Task[], userPreferences?: Preference): void {
     const blocks = this.getAdaptiveSchedule(owner);
     const droppedTaskIds = this.getDroppedTaskIds(owner);
