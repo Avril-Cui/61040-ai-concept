@@ -245,27 +245,27 @@ Original Schedule
 
 🔄 Adaptive Schedule (AI-Generated):
 ```
-⏰ 1:00 PM UTC - 2:00 PM UTC
+⏰ 1:00 PM UTC - 2:30 PM UTC
    Block ID: adaptive-block-0
    Tasks:
    - Complete Project Proposal (Priority: 1, Duration: 90 min)
 
-⏰ 2:00 PM UTC - 2:45 PM UTC
+⏰ 2:30 PM UTC - 3:15 PM UTC
    Block ID: adaptive-block-1
    Tasks:
    - Review Pull Requests (Priority: 2, Duration: 45 min)
 
-⏰ 4:00 PM UTC - 5:00 PM UTC
+⏰ 5:00 PM UTC - 6:00 PM UTC
    Block ID: adaptive-block-2
    Tasks:
    - Gym Workout (Priority: 3, Duration: 60 min)
 
-⏰ 5:00 PM UTC - 5:30 PM UTC
+⏰ 6:00 PM UTC - 6:30 PM UTC
    Block ID: adaptive-block-3
    Tasks:
    - Prepare Dinner (Priority: 3, Duration: 30 min)
 
-⏰ 5:30 PM UTC - 6:00 PM UTC
+⏰ 7:00 PM UTC - 7:30 PM UTC
    Block ID: adaptive-block-4
    Tasks:
    - Study Spanish (Priority: 4, Duration: 30 min)
