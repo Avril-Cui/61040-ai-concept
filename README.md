@@ -725,7 +725,7 @@ Expected adaptive behavior:
    Block ID: planned-2
    Tasks:
    - Study for Exam (Priority: 2, Duration: 120 min)
-⏰ 2:00 PM UTC - 3:30 PM UTC
+⏰ 2:00 PM UTC - 3:00 PM UTC
    Block ID: planned-3
    Tasks:
    - Do Laundry (Priority: 3, Duration: 60 min)
