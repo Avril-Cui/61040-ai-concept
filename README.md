@@ -816,6 +816,7 @@ Expected adaptive behavior:
 Some points worth highlighting about this test case:
 1.	Concurrent scheduling: The tasks do laundry and study for exam are scheduled concurrently because they can be performed in parallel. They are placed in two separate adaptive blocks so that, when displayed in the frontend, the schedule visually resembles how most calendar apps present overlapping events — side by side rather than stacked together.
 2.	Partial scheduling for remaining time: The task organize notes is scheduled for only 20 minutes because there were only 20 minutes remaining before the user’s preferred stop time at 5 PM. The model therefore utilized the remaining time efficiently by allocating this short window to this task.
+3. Please note that when you run my test case, you might not get the exact same result. This is because LLM outputs are not deterministic.
 
 Some issue that remain:
 
