@@ -337,9 +337,9 @@ This test case shows how the test case runs without LLM (i.e., the user does the
    - Review for 6.3900 exam (Priority: 3, Duration: 60 min)
 ```
 
-## Test 1: Basic AI Adaptive Scheduling
+## Test 1: Baseline AI Adaptive Scheduling
 
-This is a simple scenario with no concurrent/conflicting plans, dependencies, or unfinished tasks. The user only wants to adaptively schedule the future tasks. Prompt-v1 (see above) works well in this case. This is because this test case imposes no special dependencies or constraints, thus is straightforward enough for the LLM to output a clean, working adaptive schedule.
+This is a simple scenario with no concurrent/conflicting plans, dependencies, or unfinished tasks. The user only wants to adaptively schedule the future tasks. The only challenge here is we want to see whether the priorities are respected, and whether the output schedule has an acceptable format (i.e., no conflicts or failing any constraints). Prompt-v1 (see above) works well in this case. This is because this test case imposes no special dependencies or constraints, thus is straightforward enough for the LLM to output a clean, working adaptive schedule.
 
 Scenario set up: The user has an intended schedule with a set of planned tasks. The user also logged their actual routine. Due to some conflicts, the user now hopes to generate an adaptive schedule for the rest of the day (more details see below).
 
