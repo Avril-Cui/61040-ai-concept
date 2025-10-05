@@ -494,7 +494,7 @@ export async function testDeadlinesAndConcurrency(): Promise<void> {
             timeBlockId: 'planned-3',
             owner: owner,
             start: '2025-10-04T14:00:00Z',
-            end: '2025-10-04T15:30:00Z',
+            end: '2025-10-04T15:00:00Z',
             taskIdSet: ['task-3']
         },
         {
