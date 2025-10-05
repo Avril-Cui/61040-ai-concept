@@ -531,7 +531,7 @@ export async function testDeadlinesAndConcurrency(): Promise<void> {
             start: '2025-10-04T09:00:00Z',
             end: '2025-10-04T09:20:00Z',
             linkedTask: task1,
-            interruptReason: 'Got stuck, only worked 20 minutes out of planned 90'
+            interruptReason: 'Got stuck, only worked 20 minutes out of planned 120'
         },
         {
             owner: owner,
