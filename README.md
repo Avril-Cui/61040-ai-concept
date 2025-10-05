@@ -414,9 +414,11 @@ Task overview
    ✅ No tasks were dropped - all tasks successfully scheduled!
 ```
 
+We can see that the test case works perfectly in this case.
+
 ## Test 2: Task-dependencies AI Adaptive Scheduling
 
-This test case assesses how well the AdaptiveScheduler works when tasks have dependencies (preDependence/postDependence). The original prompt fails sometimes, especially if task A has very high priority, but task A depends on task B (and sometimes the model will place A before B, ignoring the dependency constraint). I concluded the reason is that it does not give the LLM a set of rules it should obey. So, I created an updated version that more explicitly state all the scheduling constraints, which performs well on the test case related to task-dependencies.
+This test case assesses how well the AdaptiveScheduler works when tasks have dependencies (preDependence/postDependence). The original prompt fails sometimes, especially if task A has very high priority, but task A depends on task B. Sometimes the model will place A before B, ignoring the dependency constraint. I concluded the reason is that it does not give the LLM an explicit set of rules it should obey. So, I created an updated version that more explicitly states all the scheduling constraints, which performs well on the test case related to task-dependencies.
 
 ### Prompt-v2
 
@@ -488,9 +490,8 @@ Return ONLY the JSON object, no additional text.`;
 
 ### Test case performance
 
+Task overview
 ```
-🧪 TEST CASE 3: Task Dependencies
-==================================
 📝 Total tasks: 3
 🔗 Dependency chain: task-1 → task-2 → task-3
 ⏰ Current time: 11:30 AM
@@ -505,12 +506,11 @@ Expected adaptive behavior:
   - Then schedule Task 2 (depends on Task 1 completion)
   - Finally schedule Task 3 (depends on Task 2 completion)
 
-
 ⏰ Current Time: 11:30 AM UTC (2025-10-04T11:30:00Z)
-==========================================
+```
 
 📋 Original Planned Schedule:
-------------------------------------------
+```
 ⏰ 9:00 AM UTC - 10:00 AM UTC
    Block ID: planned-1
    Tasks:
@@ -525,9 +525,10 @@ Expected adaptive behavior:
    Block ID: planned-3
    Tasks:
    - Write First Draft (Priority: 1, Duration: 60 min)
+```
 
 📊 Actual Routine (What Actually Happened):
-------------------------------------------
+```
 ⏰ 9:00 AM UTC - 9:30 AM UTC
    Session: Started Research
    Status: Inactive, Paused
@@ -538,10 +539,10 @@ Expected adaptive behavior:
    Session: Emergency Meeting
    Status: Inactive
    Interrupt Reason: Unplanned urgent meeting took 2 hours
-
+```
 
 🔄 Adaptive Schedule:
-------------------------------------------
+```
 ⏰ 11:30 AM UTC - 12:00 PM UTC
    Block ID: adaptive-block-0
    Tasks:
@@ -556,6 +557,10 @@ Expected adaptive behavior:
    Block ID: adaptive-block-2
    Tasks:
    - Write First Draft (Priority: 1, Duration: 60 min)
+
+🗑️ Dropped Tasks:
+==========================================
+   ✅ No tasks were dropped - all tasks successfully scheduled!
 ```
 
 ## Test 3: Test Deadline and Concurrency
