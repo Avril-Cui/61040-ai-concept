@@ -563,14 +563,18 @@ Expected adaptive behavior:
    ✅ No tasks were dropped - all tasks successfully scheduled!
 ```
 
+We can see that in this case, although task 3 has a higher priority, the task dependency chain is still respected, and task 3 is scheduled after tasks 1 and 2.
+
 ## Test 3: Test Deadline and Concurrency
+This test case is the most complex and closely mirrors real-world usage when an actual user interacts with the app. In this scenario, I test several important behaviors:
 
-This test cases is the most complex one, and will most mimic the real use cases when an user is actually using the app. Here, I test for
+- Deadline handling: Tasks must be completed before their deadlines.
+- Time optimization: When time is limited, lower-priority tasks may not fit if scheduled linearly (i.e., one by one). The model should therefore optimize the schedule to fit as many tasks as possible within the available time.
+- Concurrent scheduling: Tasks that can be performed simultaneously should be scheduled in parallel to maximize efficiency.
 
-- Deadline constraints
-- Some tasks (with lower priorities) will not be scheduled due to time constraints
-- If concurrent task scheduling is used when it is possible
-  There are many issues that occurred while running this test case. I decided instead of making more explicit rules for LLM, maybe guide the LLM's thought process will lead to more effective result. This ended up working, and I added an analysis guideline in the prompt. I also added an example to provide the LLM with more concrete context.
+During early trials, multiple issues emerged. Instead of enforcing additional rigid rules for the LLM, I found it more effective to guide its reasoning process through structured analysis steps within the prompt. This approach improved both consistency and adaptability. I also added some concrete examples in the prompt to help the LLM better understand the expected reasoning pattern.
+
+Concurrency posed a particular challenge for my model. In many runs, the model failed to recognize opportunities to schedule compatible tasks concurrently, resulting in inefficient use of time. To address this, I introduced an explicit concurrency guideline in the prompt, which successfully encouraged the LLM to identify and plan overlapping tasks when appropriate.
 
 ### Prompt-v3 (final version)
 
@@ -584,6 +588,8 @@ USER PREFERENCES:
 ${preference.preferences.map((p) => `- ${p}`).join("\n")}
 
 TASKS TO SCHEDULE:
+** CRITICAL: ALL tasks listed below MUST be scheduled. Each task represents work that still needs to be done. **
+** If a task has a note indicating "remaining" work, schedule exactly the duration specified. **
 ${this.tasksToString(tasks)}
 
 PLANNED SCHEDULE (Original Plan):
@@ -609,60 +615,78 @@ ANALYSIS REQUIREMENTS:
 4. Schedule critical tasks (priority 1-2) before lower priority tasks
 5. Consider user preferences for scheduling
 6. Respect task constraints (duration, splittable, slack)
-7. Avoid scheduling multiple tasks in the same time block UNLESS they can be executed concurrently (e.g., laundry + homework)
+7. **CONCURRENCY OPTIMIZATION (CRITICAL): Tasks like laundry, cleaning room, or dishwashing can be done CONCURRENTLY with other tasks (studying, homework, etc.) because they don't require constant attention. You MUST actively look for these opportunities and create OVERLAPPING time blocks to save time. For example, if you schedule "Do Laundry" from 2:00-3:00 PM, you should ALSO schedule another task (like studying) from 2:00-3:00 PM or overlapping that time period. This is a key optimization that can free up significant time.**
 
 SCHEDULING CONSTRAINTS:
 - Times must be in ISO 8601 format (e.g., "2025-10-04T14:00:00Z")
 - Start time must be before end time
 - ALL time blocks MUST start at or after the CURRENT TIME if provided
-- **CRITICAL: Time block duration MUST be at least as long as the total duration of tasks assigned to it**
+- **CRITICAL DURATION RULE: Each time block's duration MUST be at least as long as the longest task in that block (NOT the sum). When tasks are concurrent/overlapping in separate blocks, each block is evaluated independently.**
 - For non-splittable tasks, the block must be at least as long as the task duration
 - For splittable tasks, you can either: (1) create a single block with duration >= task duration, OR (2) split across multiple blocks where sum of block durations >= task duration
+- **CONCURRENCY CLARIFICATION: When creating overlapping blocks, each block duration only needs to match its own task duration. Example: Laundry (60 min) in Block A from 1:40-2:40 PM, Study (120 min) in Block B from 1:40-3:40 PM - this is CORRECT and maximizes time savings.**
 - High priority tasks should be scheduled first
 - Respect task deadlines
 - Consider dependencies (preDependence tasks must be scheduled before dependent tasks)
 - If a task is splittable, it can be divided across multiple blocks. Otherwise, do not divide it across multiple **non-consecutive blocks**.
-- Allow multiple tasks per block ONLY if they can be done concurrently
+- **IMPORTANT: You MUST create overlapping/concurrent blocks for passive tasks (laundry, cleaning, etc.) if not all tasks can be scheduled. This means creating separate blocks with the same or overlapping time ranges. For example, if you have laundry and studying, create two blocks that overlap in time rather than scheduling them sequentially.**
 
 CRITICAL REQUIREMENTS:
 1. ONLY schedule the tasks listed above - do NOT add any new tasks
 2. Ensure all scheduled blocks have valid ISO timestamps
 3. Assign tasks based on priority and deadline urgency
 4. **ABSOLUTE DEADLINE CONSTRAINT: If a task has a deadline, it MUST be completed BEFORE that deadline. Do NOT schedule any part of the task after its deadline.**
-5. **If there is insufficient time to complete all tasks before their deadlines, you MUST drop the lowest priority tasks and put them in droppedTaskIds**
-6. Consider the actual routine and how it deviates from the schedule to understand what time blocks are realistic
-7. Provide reasoning for why actual routine deviated from the original planned schedule
-8. For a task with a long duration and is splittable, consider splitting it into multiple non-consecutive time blocks for better focus
-9. If time is insufficient to schedule all tasks, prioritize tasks with urgent deadlines (approaching soon) or higher priority (1-2); put lower priority tasks or tasks without urgent deadlines in droppedTaskIds
+5. **If there is insufficient time to complete all tasks before their deadlines, prioritize higher priority tasks first**
+6. **DURATION CONSTRAINT (FLEXIBLE WHEN CONSTRAINED): Ideally give each task its FULL required duration. However, when time is severely constrained and you have leftover time that can't fit a full task, it's acceptable to schedule a partial task duration rather than leaving the time empty. For example, if you have 20 minutes left and a 60-minute task, schedule it for 20 minutes rather than dropping it entirely.**
+7. Consider the actual routine and how it deviates from the schedule to understand what time blocks are realistic
+8. Provide reasoning for why actual routine deviated from the original planned schedule
+9. For a task with a long duration and is splittable, consider splitting it into multiple non-consecutive time blocks for better focus
+10. If time is insufficient to schedule all tasks, prioritize tasks with urgent deadlines (approaching soon) or higher priority (1-2); only drop tasks if absolutely no time remains
 
 Return your response as a JSON object with this exact structure:
 {
 "analysis": "Brief analysis of why the schedule deviated from the routine and key insights",
 "adaptiveBlocks": [
-    {
-    "start": "ISO timestamp",
-    "end": "ISO timestamp",
-    "taskIds": ["taskId1", "taskId2"]
-    }
+   {
+   "start": "ISO timestamp",
+   "end": "ISO timestamp",
+   "taskIds": ["taskId1", "taskId2"]
+   }
 ],
 "droppedTaskIds": ["taskId3", "taskId4"]
 }
 
-EXAMPLE - If task-1 has deadline at 5 PM and current time is 12 PM:
+EXAMPLE 1 - Deadline constraint:
+- If task-1 has deadline at 5 PM and current time is 12 PM
 - Available time: 5 hours (300 minutes)
 - If task-1 needs 100 min + other high priority tasks need 200 min = 300 min total
 - Low priority tasks (task-5, task-6) CANNOT fit before deadline
 - CORRECT: Put task-5 and task-6 in droppedTaskIds
 - WRONG: Schedule tasks after the 5 PM deadline
 
+EXAMPLE 2 - Concurrency optimization (MUST DO THIS if deadline is tight):
+- Laundry (60 min) + Study for exam (120 min) = normally 180 min sequential
+- CORRECT APPROACH: Fully overlap the laundry within studying time
+Block A: {
+   "start": "2025-10-04T14:00:00Z",
+   "end": "2025-10-04T15:00:00Z",
+   "taskIds": ["laundry-task-id"]
+},
+Block B: {
+   "start": "2025-10-04T14:00:00Z",
+   "end": "2025-10-04T16:00:00Z",
+   "taskIds": ["study-task-id"]
+}
+- Result: Both tasks complete by 4:00 PM instead of 5:00 PM, saving 60 full minutes
+- WRONG: Only partial overlap (like laundry 1:40-2:40, study 2:00-4:00) wastes 40 minutes
+- WRONG: Sequential scheduling wastes 60 minutes
+
 Return ONLY the JSON object, no additional text.`;
 ```
 
 ### Test case performance
-
+Overview
 ```
-🧪 TEST CASE 4: Deadlines and Concurrent Tasks
-================================================
 📝 Total tasks: 6
 ⏰ Current time: 12:00 PM
 ⚠️  URGENT: Assignment due at 5:00 PM (only 5 hours left!)
@@ -673,19 +697,26 @@ What happened:
   - All other tasks: Not started
 
 Time available: 5 hours (300 minutes)
-Total work needed: 100 + 120 + 90 + 60 + 45 + 60 = 475 minutes
-Deficit: 175 minutes - some tasks MUST be dropped!
+Total work needed: 100 + 120 + 60 + 60 + 45 + 60 = 445 minutes
+Deficit: 145 minutes - some tasks MUST be dropped!
 
 Expected adaptive behavior:
   1. Prioritize finishing Assignment BEFORE 5 PM deadline (non-negotiable!)
   2. Schedule high-priority Study task (deadline tomorrow)
   3. Consider concurrent scheduling for Laundry
-  4. DROP lowest priority tasks (examples are task-5 "Organize Notes" priority 5, task-6 "Clean Room" priority 4)
-🤖 Requesting adaptive schedule from Gemini AI...
+  4. DROP lowest priority tasks (task-5 "Organize Notes" priority 5, task-6 "Clean Room" priority 4)
 
+👤 User Preferences:
+------------------------------------------
+   1. Try finish all work by 5:00 PM (17:00)
+   2. CRITICAL: Prioritize tasks with urgent deadlines first
+   3. Schedule concurrent tasks (like laundry) alongside other work to save time
+   4. Avoid dropping tasks with approaching deadlines
+   5. If time is tight, drop lower priority tasks to meet the 5 PM deadline
+```
 
 📋 Original Planned Schedule:
-------------------------------------------
+```
 ⏰ 9:00 AM UTC - 11:00 AM UTC
    Block ID: planned-1
    Tasks:
@@ -697,7 +728,7 @@ Expected adaptive behavior:
 ⏰ 2:00 PM UTC - 3:30 PM UTC
    Block ID: planned-3
    Tasks:
-   - Do Laundry (Priority: 3, Duration: 90 min)
+   - Do Laundry (Priority: 3, Duration: 60 min)
 ⏰ 3:30 PM UTC - 4:30 PM UTC
    Block ID: planned-4
    Tasks:
@@ -709,60 +740,68 @@ Expected adaptive behavior:
 ⏰ 5:15 PM UTC - 6:15 PM UTC
    Block ID: planned-6
    Tasks:
-   - Clean Room (Priority: 4, Duration: 60 min)
+   - Clean Room (Priority: 5, Duration: 60 min)
+```
 
 📊 Actual Routine (What Actually Happened):
-------------------------------------------
+```
 ⏰ 9:00 AM UTC - 9:20 AM UTC
    Session: Attempted Assignment
    Status: Inactive, Paused
    Linked Task: Submit Assignment
    Interrupt Reason: Got stuck, only worked 20 minutes out of planned 90
+
 ⏰ 9:20 AM UTC - 12:00 PM UTC
    Session: Distraction Period
    Status: Inactive
    Interrupt Reason: Wasted time on social media and other distractions
-
-👤 User Preferences:
-------------------------------------------
-   1. CRITICAL: Must finish all work by 5:00 PM (17:00) - no exceptions, this is a hard deadline
-   2. CRITICAL: Prioritize tasks with urgent deadlines first
-   3. Schedule concurrent tasks (like laundry) alongside other work to save time
-   4. Avoid dropping tasks with approaching deadlines
-   5. If time is tight, drop lower priority tasks to meet the 5 PM deadline
+```
 
 🔄 Adaptive Schedule:
-------------------------------------------
+```
 ⏰ 12:00 PM UTC - 1:40 PM UTC
    Block ID: adaptive-block-0
    Tasks:
    - Submit Assignment (Priority: 1, Duration: 100 min)
-⏰ 1:40 PM UTC - 3:00 PM UTC
+
+⏰ 1:40 PM UTC - 3:40 PM UTC
    Block ID: adaptive-block-1
    Tasks:
    - Study for Exam (Priority: 2, Duration: 120 min)
-⏰ 3:00 PM UTC - 3:45 PM UTC
+
+⏰ 3:40 PM UTC - 4:40 PM UTC
    Block ID: adaptive-block-2
    Tasks:
-   - Do Laundry (Priority: 3, Duration: 90 min)
-   - Watch Lecture Recording (Priority: 4, Duration: 60 min)
-⏰ 3:45 PM UTC - 4:30 PM UTC
+   - Do Laundry (Priority: 3, Duration: 60 min)
+
+⏰ 3:40 PM UTC - 4:40 PM UTC
    Block ID: adaptive-block-3
    Tasks:
-   - Do Laundry (Priority: 3, Duration: 90 min)
-   - Organize Notes (Priority: 5, Duration: 45 min)
+   - Watch Lecture Recording (Priority: 4, Duration: 60 min)
 
 🗑️ Dropped Tasks:
 ==========================================
-❌ Clean Room
-    Priority: 4 (Low)
-    Duration: 60 minutes
-    Reason: Insufficient time to schedule
+   ❌ Organize Notes
+      Priority: 5 (Optional)
+      Duration: 45 minutes
+      Reason: Insufficient time to schedule
+
+   ❌ Clean Room
+      Priority: 5 (Optional)
+      Duration: 60 minutes
+      Reason: Insufficient time to schedule
+
 
 ⚠️  Analysis of Dropped Tasks:
 ================================
+
+📋 Organize Notes
+   Priority: 5 (Low)
+   Duration: 45 minutes
+   Reason: Insufficient time to schedule before urgent deadline
+
 📋 Clean Room
-   Priority: 4 (Low)
+   Priority: 5 (Low)
    Duration: 60 minutes
    Reason: Insufficient time to schedule before urgent deadline
 ```
