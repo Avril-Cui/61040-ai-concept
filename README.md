@@ -749,7 +749,7 @@ Expected adaptive behavior:
    Session: Attempted Assignment
    Status: Inactive, Paused
    Linked Task: Submit Assignment
-   Interrupt Reason: Got stuck, only worked 20 minutes out of planned 90
+   Interrupt Reason: Got stuck, only worked 20 minutes out of planned 120
 
 ⏰ 9:20 AM UTC - 12:00 PM UTC
    Session: Distraction Period
