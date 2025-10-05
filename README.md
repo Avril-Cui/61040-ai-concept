@@ -435,8 +435,6 @@ We can see that the test case works perfectly in this case.
 
 This test case assesses how well the AdaptiveScheduler works when tasks have dependencies (preDependence/postDependence). The original prompt fails sometimes, especially if task A has very high priority, but task A depends on task B. Sometimes the model will place A before B, ignoring the dependency constraint. I concluded the reason is that it does not give the LLM an explicit set of rules it should obey. So, I created an updated version that more explicitly states all the scheduling constraints, which performs well on the test case related to task-dependencies.
 
-Scenario set up: The user has an intended schedule with a set of planned tasks. The user also logged their actual routine. Due to some conflicts, the user now hopes to generate an adaptive schedule for the rest of the day (more details see below).
-
 ### Prompt-v2
 
 ```
@@ -506,6 +504,7 @@ Return ONLY the JSON object, no additional text.`;
 ```
 
 ### Test case performance
+This scenario evaluates whether the adaptive scheduler correctly respects task dependencies and incomplete progress when replanning the day. The case involves a three-step dependency chain (Task 1 → Task 2 → Task 3), where an unexpected meeting interrupted the user’s workflow midway through Task 1. At the current time (11:30 AM), only half of Task 1 has been completed, while the remaining two dependent tasks have not yet started.
 
 Task overview
 ```
@@ -702,6 +701,8 @@ Return ONLY the JSON object, no additional text.`;
 ```
 
 ### Test case performance
+This scenario tests whether the adaptive scheduler can reason under strict time pressure while respecting deadlines, priorities, and concurrency. At 12:00 PM, the user faces an urgent situation: an assignment due in five hours is only partially complete, and all other tasks remain unfinished after a distracted morning. With only 300 minutes of available time but 445 minutes of total work required, the system must intelligently prioritize and trim the schedule.
+
 Overview
 ```
 📝 Total tasks: 6
