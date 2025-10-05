@@ -564,7 +564,7 @@ export async function testDeadlinesAndConcurrency(): Promise<void> {
     // User preferences
     const preferences: Preference = {
         preferences: [
-            'Try finish all work by 5:00 PM (17:00) - no exceptions, this is a hard deadline',
+            'CRITICAL: Must finish all work by 5:00 PM (17:00) - no exceptions, this is a hard deadline',
             'CRITICAL: Prioritize tasks with urgent deadlines first',
             'Schedule concurrent tasks (like laundry) alongside other work to save time',
             'Avoid dropping tasks with approaching deadlines',

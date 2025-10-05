@@ -769,7 +769,7 @@ Expected adaptive behavior:
    Tasks:
    - Study for Exam (Priority: 2, Duration: 120 min)
 
-⏰ 3:40 PM UTC - 4:40 PM UTC
+⏰ 1:40 PM UTC - 2:40 PM UTC
    Block ID: adaptive-block-2
    Tasks:
    - Do Laundry (Priority: 3, Duration: 60 min)
@@ -779,26 +779,21 @@ Expected adaptive behavior:
    Tasks:
    - Watch Lecture Recording (Priority: 4, Duration: 60 min)
 
+⏰ 4:40 PM UTC - 5:00 PM UTC
+   Block ID: adaptive-block-4
+   Tasks:
+   - Organize Notes (Priority: 5, Duration: 45 min)
+
 🗑️ Dropped Tasks:
 ==========================================
-   ❌ Organize Notes
-      Priority: 5 (Optional)
-      Duration: 45 minutes
-      Reason: Insufficient time to schedule
 
    ❌ Clean Room
       Priority: 5 (Optional)
       Duration: 60 minutes
       Reason: Insufficient time to schedule
 
-
 ⚠️  Analysis of Dropped Tasks:
 ================================
-
-📋 Organize Notes
-   Priority: 5 (Low)
-   Duration: 45 minutes
-   Reason: Insufficient time to schedule before urgent deadline
 
 📋 Clean Room
    Priority: 5 (Low)
