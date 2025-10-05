@@ -11,7 +11,7 @@
     "dayplanner": "npm run build && node dist/dayplanner-tests.js",
     "adaptive:manual": "npm run build && node -e \"require('./dist/adaptiveschedule-tests.js').testManualTimeBlocks()\"",
     "adaptive:ai": "npm run build && node -e \"require('./dist/adaptiveschedule-tests.js').testAIAdaptiveScheduling()\"",
-    "adaptive:complex": "npm run build && node -e \"require('./dist/adaptiveschedule-tests.js').testComplexAdaptiveScheduling()\"",
+    "adaptive:complex": "npm run build && node -e \"require('./dist/adaptiveschedule-tests.js').testDependencies()\"",
     "adaptive:unassign": "npm run build && node -e \"require('./dist/adaptiveschedule-tests.js').testUnassignBlock()\""
   },
   "keywords": ["gemini", "ai", "schedule", "student", "demo", "typescript"],

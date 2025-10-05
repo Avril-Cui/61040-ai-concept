@@ -79,38 +79,59 @@ state
     a set of droppedTasks with
         a taskId String
 
+invariants
+   every adaptive block has a unique timeBlockId
+   start time is before end time
+   each adaptive block has exactly one owner
+   dropped task IDs are valid task identifiers
+
 actions
-    addTimeBlock (owner: User, start: Time, end: Time) : (timeBlockId: String)
+   addTimeBlock (owner: User, start: Time, end: Time) : (timeBlockId: String)
+      requires:
+         start and end are valid times;
+         start is before end;
+         no adaptive time block exists with this owner, start, and end;
+      effect:
+         create a new adaptive time block b with this owner, start, and end;
+         assign b an empty set of tasks;
+         return the unique timeBlockId of b;
+
+   createAdaptiveSchedule (owner: User, tasks: set of Task, schedule: Schedule, routine: Routine)
+      effect:
+         based on (task, schedule, and routine), adaptively generate a new schedule of tasks by assigning active tasks to taskSet of the corresponding AdaptiveBlock under this owner
+
+   async requestAdaptiveScheduleAI (owner: User, task: Task, schedule: Schedule, routine: Routine, preference: Preference, llm: GeminiLLM): (adaptiveBlock: AdaptiveBlock)
+      effect:
+         AI-assisted adaptive scheduling where LLM analyzes the difference between schedule and routine;
+         reasons about possible causes of deviation;
+         considers hardwired user preferences;
+         considers the original planned schedule of tasks;
+         considers information provided by attributes in tasks (priority, duration, deadline, dependencies, etc.);
+         considers other schedules represented by adaptive blocks owned by the user;
+         after reasoning, the LLM assigns tasks to one or more adaptive blocks under this owner;
+         if time is insufficient, prioritizes tasks with urgent deadlines or higher priority (1-2);
+         drops lower priority tasks (3-5) or tasks without urgent deadlines, storing their IDs in droppedTaskIds;
+         returns the set of all AdaptiveBlocks owned by the user;
+
+   unassignBlock (owner: User, task: Task, timeBlockId: String)
+      requires:
+         exists an adaptive block with matching owner and timeBlockId;
+         task exists in this time block's taskSet;
+      effect:
+         remove task from that block's taskSet
+
+   getAdaptiveSchedule(owner: User): (set of AdaptiveBlock)
         requires:
-            start and end are valid times;
-            start is before end;
-            no adaptive time block exists with this owner, start, and end;
+            exists at least one adaptive block with this owner
         effect:
-            create a new adaptive time block $b$ with this owner, start, and end;
-            assign $b$ an empty set of tasks;
-            return the timeBlockId of the newly created adaptive time block;
+            returns all adaptive blocks owned by the user
 
-    createAdaptiveSchedule (owner: User, tasks: set of Task, schedule: Schedule, routine: Routine)
-        effect:
-            based on (task, schedule, and routine), adaptively generate a new schedule of tasks by assigning active tasks to taskSet of the corresponding AdaptiveBlock under this owner
+   getDroppedTaskIds(owner: User): (set of String)
+      requires:
+         exists at least one adaptive block with this owner
+      effect:
+         returns all dropped task IDs for the user (tasks that couldn't be scheduled due to insufficient time)
 
-    async requestAdaptiveScheduleAI (owner: User, task: Task, schedule: Schedule, routine: Routine, preference: Preference, llm: GeminiLLM): (adaptiveBlock: AdaptiveBlock)
-        effect:
-            AI-assisted adaptive scheduling LLM first analyzes the difference between schedule and routine, and reasons the possible causes of deviation;
-            it considers hardwired user preference;
-            it considers the original planned schedule of task;
-            it considers information provided by attributes in task;
-            it also considers other schedules represented by adaptive blocks owned by the user;
-            after reasoning, the LLM assigns the task under the taskSet of one or more adaptive blocks owned by this user;
-            if time is insufficient, prioritize tasks with urgent deadlines or higher priority and put the rest in droppedTaskIds;
-            return the set of all AdaptiveBlocks owned by the user;
-
-    unassignBlock (owner: User, task: Task, timeBlockId: String)
-        requires:
-            exists an adaptive block with matching owner and timeBlockId;
-            task exists in this time block's taskSet;
-        effect:
-            remove task from that block's taskSet
 ```
 
 ### Note
@@ -619,6 +640,7 @@ Return ONLY the JSON object, no additional text.`;
 ```
 
 ### Test case performance
+
 ```
 🧪 TEST CASE 4: Deadlines and Concurrent Tasks
 ================================================
@@ -727,17 +749,22 @@ Expected adaptive behavior:
 ```
 
 # Part five: Add validators to your code
+
 I noticed that even with well-scoped prompt, the LLM can sometimes generate problematic output with the following behaviors:
+
 1. Invest or mis-reference tasks
 2. Produce impossible schedules
 3. Ignore real-world constraints like deadlines or dependencies
-I added seven validators that catch these realistic mistakes and fail them with actionable errors so that the frontend or the users know how to respond. The validators can be found in the `validateSchedule` function. All validation errors are collected and printed with specific, human-readable reasons before throwing a single summary Error: LLM output failed validation... This makes failures debuggable and safe to re-prompt. For more details, check the `validateSchedule` function under `adaptiveschedule.ts`.
+   I added seven validators that catch these realistic mistakes and fail them with actionable errors so that the frontend or the users know how to respond. The validators can be found in the `validateSchedule` function. All validation errors are collected and printed with specific, human-readable reasons before throwing a single summary Error: LLM output failed validation... This makes failures debuggable and safe to re-prompt. For more details, check the `validateSchedule` function under `adaptiveschedule.ts`.
 
 ## Prevent hallucinations and contradictions
+
 The LLM sometimes output task IDs that weren’t in the request, or mark a task both scheduled and dropped. In validateSchedule() Validator 1, I check for hallucinated tasks, which are any scheduled task not in the original list. In Validator 4, I check for contradictory state where a task appears both scheduled and in droppedTaskIds. In Validator 7, I verify that every dropped ID exists in the original set. These emit clear messages like "Hallucinated task ... was not in the original task list", "Task X is both scheduled AND dropped", or "Invalid dropped task: "${taskId}" was not in the original task list."
 
 ## Temporal correctness & non-overlap.
-The model sometimes return invalid times or overlapping blocks. During parse (parseAndApplyAdaptiveSchedule) I validate timestamps (ISO parseable; start < end) and reject bad blocks. Then in validateSchedule() Validator 2, I detect overlapping time blocks and only allow them if both sides are explicitly concurrent (checked via canTasksBeConcurrent() looking for a "concurrent" note). 
+
+The model sometimes return invalid times or overlapping blocks. During parse (parseAndApplyAdaptiveSchedule) I validate timestamps (ISO parseable; start < end) and reject bad blocks. Then in validateSchedule() Validator 2, I detect overlapping time blocks and only allow them if both sides are explicitly concurrent (checked via canTasksBeConcurrent() looking for a "concurrent" note).
 
 ## Deadlines and dependencies
+
 As stated in the prompt section, I have refined my prompt to make sure that the LLM respect the deadlines and dependencies between tasks. However, the LLM may still schedule work past a deadline or forget prerequisites. In validateSchedule(), I enforce deadline compliance (Validator 5) by comparing each block's end against the task's deadline; and dependency ordering (Validator 6) by ensuring that every task's preDependence appears earlier in the scheduled order (or is explicitly dropped). Violations include messages like "Task A is scheduled before its dependency B" or "Task A ends after its deadline."

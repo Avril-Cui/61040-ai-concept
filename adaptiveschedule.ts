@@ -166,6 +166,8 @@ export class AdaptiveSchedule {
     ${preference.preferences.map((p) => `- ${p}`).join("\n")}
 
     TASKS TO SCHEDULE:
+    ** CRITICAL: ALL tasks listed below MUST be scheduled. Each task represents work that still needs to be done. **
+    ** If a task has a note indicating "remaining" work, schedule exactly the duration specified. **
     ${this.tasksToString(tasks)}
 
     PLANNED SCHEDULE (Original Plan):
@@ -492,8 +494,13 @@ export class AdaptiveSchedule {
 
             // Check if dependency is scheduled
             if (depIndex === undefined) {
-              // Dependency not scheduled - only OK if it's in dropped tasks
-              if (!droppedTaskIdSet.has(dependency.taskId)) {
+              // Dependency not scheduled - check if it's in the provided task list or dropped
+              // A dependency might not be in the original task list if it was already completed
+              const isDependencyInOriginalList = originalTaskIds.has(dependency.taskId);
+              const isDependencyDropped = droppedTaskIdSet.has(dependency.taskId);
+
+              // Only flag as error if dependency is in the task list but neither scheduled nor dropped
+              if (isDependencyInOriginalList && !isDependencyDropped) {
                 errors.push(
                   `Dependency violation: Task "${task.taskName}" depends on "${dependency.taskName}" which is neither scheduled nor dropped`
                 );

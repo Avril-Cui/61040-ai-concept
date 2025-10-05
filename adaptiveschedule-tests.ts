@@ -676,17 +676,17 @@ async function main(): Promise<void> {
 
     try {
         // Run manual time block test
-        // await testManualTimeBlocks();
+        await testManualTimeBlocks();
 
         // Run AI adaptive scheduling test
-        // await testAIAdaptiveScheduling();
+        await testAIAdaptiveScheduling();
 
         // // Run complex scenario test
-        // await testDependencies();
+        await testDependencies();
         await testDeadlinesAndConcurrency();
 
         // // Run unassign test
-        // await testUnassignBlock();
+        await testUnassignBlock();
 
         console.log('\n🎉 All test cases completed successfully!');
 

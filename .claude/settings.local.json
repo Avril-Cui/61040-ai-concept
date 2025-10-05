@@ -4,7 +4,8 @@
       "Read(//Users/xiaokeai/Desktop/**)",
       "Bash(cd:*)",
       "Bash(npm run build:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npm run:*)"
     ],
     "deny": [],
     "ask": []
