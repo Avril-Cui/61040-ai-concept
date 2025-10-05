@@ -103,7 +103,7 @@ export async function testAIAdaptiveScheduling(): Promise<void> {
             taskId: 'task-2',
             taskName: 'Review Pull Requests',
             category: 'Work',
-            duration: 45,
+            duration: 60,
             priority: 2,
             splittable: true,
             timeBlockSet: ['planned-2']
