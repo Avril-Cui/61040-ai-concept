@@ -341,6 +341,8 @@ This test case shows how the test case runs without LLM (i.e., the user does the
 
 This is a simple scenario with no concurrent/conflicting plans, dependencies, or unfinished tasks. The user only wants to adaptively schedule the future tasks. Prompt-v1 (see above) works well in this case. This is because this test case imposes no special dependencies or constraints, thus is straightforward enough for the LLM to output a clean, working adaptive schedule.
 
+Scenario set up: The user has an intended schedule with a set of planned tasks. The user also logged their actual routine. Due to some conflicts, the user now hopes to generate an adaptive schedule for the rest of the day (more details see below).
+
 Task overview
 ```
 ⏰ Current time (fixed for testing): 2025-10-04T13:00:00Z (1:00 PM)
@@ -432,6 +434,8 @@ We can see that the test case works perfectly in this case.
 ## Test 2: Task-dependencies AI Adaptive Scheduling
 
 This test case assesses how well the AdaptiveScheduler works when tasks have dependencies (preDependence/postDependence). The original prompt fails sometimes, especially if task A has very high priority, but task A depends on task B. Sometimes the model will place A before B, ignoring the dependency constraint. I concluded the reason is that it does not give the LLM an explicit set of rules it should obey. So, I created an updated version that more explicitly states all the scheduling constraints, which performs well on the test case related to task-dependencies.
+
+Scenario set up: The user has an intended schedule with a set of planned tasks. The user also logged their actual routine. Due to some conflicts, the user now hopes to generate an adaptive schedule for the rest of the day (more details see below).
 
 ### Prompt-v2
 
