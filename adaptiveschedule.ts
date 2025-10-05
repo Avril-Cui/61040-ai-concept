@@ -360,8 +360,20 @@ export class AdaptiveSchedule {
         }
       }
 
+      // Run validators on the generated schedule
+      console.log("\n🔍 Running validators on LLM output...");
+      const validationErrors = this.validateSchedule(owner, tasks);
+
+      if (validationErrors.length > 0) {
+        console.error("\n❌ VALIDATION ERRORS DETECTED:");
+        validationErrors.forEach((error) => console.error(`   - ${error}`));
+        throw new Error(`LLM output failed validation with ${validationErrors.length} error(s)`);
+      } else {
+        console.log("✅ All validations passed!");
+      }
+
       if (issues.length > 0) {
-        console.warn("⚠️ Some issues occurred while parsing:");
+        console.warn("\n⚠️ Some issues occurred while parsing:");
         issues.forEach((issue) => console.warn(`   - ${issue}`));
       }
     } catch (error) {
@@ -369,6 +381,159 @@ export class AdaptiveSchedule {
       console.log("Response was:", responseText);
       throw error;
     }
+  }
+
+  /**
+   * Validate the LLM-generated schedule for common errors
+   */
+  private validateSchedule(owner: User, originalTasks: Task[]): string[] {
+    const errors: string[] = [];
+    const scheduledBlocks = this.getAdaptiveSchedule(owner);
+    const droppedTaskIds = this.getDroppedTaskIds(owner);
+
+    // Create sets for tracking
+    const originalTaskIds = new Set(originalTasks.map(t => t.taskId));
+    const scheduledTaskIds = new Set<string>();
+    const droppedTaskIdSet = new Set(droppedTaskIds);
+
+    // Validator 1: Check for hallucinated tasks (tasks not in original list)
+    for (const block of scheduledBlocks) {
+      for (const task of block.taskSet) {
+        if (!originalTaskIds.has(task.taskId)) {
+          errors.push(`Hallucinated task: "${task.taskName}" (${task.taskId}) was not in the original task list`);
+        }
+        scheduledTaskIds.add(task.taskId);
+      }
+    }
+
+    // Validator 2: Check for conflicting time blocks (overlapping schedules)
+    for (let i = 0; i < scheduledBlocks.length; i++) {
+      for (let j = i + 1; j < scheduledBlocks.length; j++) {
+        const block1 = scheduledBlocks[i];
+        const block2 = scheduledBlocks[j];
+
+        const start1 = new Date(block1.start).getTime();
+        const end1 = new Date(block1.end).getTime();
+        const start2 = new Date(block2.start).getTime();
+        const end2 = new Date(block2.end).getTime();
+
+        // Check if blocks overlap
+        if ((start1 < end2 && end1 > start2)) {
+          // Check if tasks can be done concurrently
+          const allTasksConcurrent = this.canTasksBeConcurrent(block1.taskSet, block2.taskSet);
+          if (!allTasksConcurrent) {
+            errors.push(
+              `Time conflict: Blocks ${block1.timeBlockId} (${block1.start} - ${block1.end}) and ${block2.timeBlockId} (${block2.start} - ${block2.end}) overlap and contain non-concurrent tasks`
+            );
+          }
+        }
+      }
+    }
+
+    // Validator 3: Check for duplicate task scheduling (same task scheduled multiple times)
+    const taskScheduleCount = new Map<string, number>();
+    for (const block of scheduledBlocks) {
+      for (const task of block.taskSet) {
+        const count = taskScheduleCount.get(task.taskId) || 0;
+        taskScheduleCount.set(task.taskId, count + 1);
+      }
+    }
+
+    for (const [taskId, count] of taskScheduleCount) {
+      if (count > 1) {
+        const task = originalTasks.find(t => t.taskId === taskId);
+        const taskName = task ? task.taskName : taskId;
+        errors.push(`Duplicate scheduling: Task "${taskName}" (${taskId}) is scheduled ${count} times`);
+      }
+    }
+
+    // Validator 4: Check for tasks scheduled AND dropped (contradictory state)
+    for (const taskId of scheduledTaskIds) {
+      if (droppedTaskIdSet.has(taskId)) {
+        const task = originalTasks.find(t => t.taskId === taskId);
+        const taskName = task ? task.taskName : taskId;
+        errors.push(`Contradictory state: Task "${taskName}" (${taskId}) is both scheduled AND marked as dropped`);
+      }
+    }
+
+    // Validator 5: Check for deadline violations
+    for (const block of scheduledBlocks) {
+      for (const task of block.taskSet) {
+        if (task.deadline) {
+          const blockEnd = new Date(block.end).getTime();
+          const deadline = new Date(task.deadline).getTime();
+
+          if (blockEnd > deadline) {
+            errors.push(
+              `Deadline violation: Task "${task.taskName}" (${task.taskId}) is scheduled to end at ${block.end} but has deadline at ${task.deadline}`
+            );
+          }
+        }
+      }
+    }
+
+    // Validator 6: Check for dependency violations
+    const scheduledTaskOrder = new Map<string, number>();
+    scheduledBlocks.forEach((block, index) => {
+      block.taskSet.forEach(task => {
+        if (!scheduledTaskOrder.has(task.taskId)) {
+          scheduledTaskOrder.set(task.taskId, index);
+        }
+      });
+    });
+
+    for (const block of scheduledBlocks) {
+      for (const task of block.taskSet) {
+        if (task.preDependence && task.preDependence.length > 0) {
+          const taskIndex = scheduledTaskOrder.get(task.taskId);
+
+          for (const dependency of task.preDependence) {
+            const depIndex = scheduledTaskOrder.get(dependency.taskId);
+
+            // Check if dependency is scheduled
+            if (depIndex === undefined) {
+              // Dependency not scheduled - only OK if it's in dropped tasks
+              if (!droppedTaskIdSet.has(dependency.taskId)) {
+                errors.push(
+                  `Dependency violation: Task "${task.taskName}" depends on "${dependency.taskName}" which is neither scheduled nor dropped`
+                );
+              }
+            } else if (taskIndex !== undefined && depIndex >= taskIndex) {
+              // Dependency scheduled but comes after dependent task
+              errors.push(
+                `Dependency violation: Task "${task.taskName}" is scheduled before its dependency "${dependency.taskName}"`
+              );
+            }
+          }
+        }
+      }
+    }
+
+    // Validator 7: Check for tasks in dropped list that aren't in original task list
+    for (const taskId of droppedTaskIds) {
+      if (!originalTaskIds.has(taskId)) {
+        errors.push(`Invalid dropped task: "${taskId}" was not in the original task list`);
+      }
+    }
+
+    return errors;
+  }
+
+  /**
+   * Check if tasks can be done concurrently
+   */
+  private canTasksBeConcurrent(tasks1: Task[], tasks2: Task[]): boolean {
+    // Tasks can be concurrent if at least one set contains a task with a note indicating concurrency
+    // For example, laundry can be done concurrently with other tasks
+    const allTasks = [...tasks1, ...tasks2];
+
+    for (const task of allTasks) {
+      if (task.note && task.note.toLowerCase().includes('concurrent')) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   // Helper function to convert tasks to string format

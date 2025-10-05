@@ -725,3 +725,19 @@ Expected adaptive behavior:
    Duration: 60 minutes
    Reason: Insufficient time to schedule before urgent deadline
 ```
+
+# Part five: Add validators to your code
+I noticed that even with well-scoped prompt, the LLM can sometimes generate problematic output with the following behaviors:
+1. Invest or mis-reference tasks
+2. Produce impossible schedules
+3. Ignore real-world constraints like deadlines or dependencies
+I added seven validators that catch these realistic mistakes and fail them with actionable errors so that the frontend or the users know how to respond. The validators can be found in the `validateSchedule` function. All validation errors are collected and printed with specific, human-readable reasons before throwing a single summary Error: LLM output failed validation... This makes failures debuggable and safe to re-prompt. For more details, check the `validateSchedule` function under `adaptiveschedule.ts`.
+
+## Prevent hallucinations and contradictions
+The LLM sometimes output task IDs that weren’t in the request, or mark a task both scheduled and dropped. In validateSchedule() Validator 1, I check for hallucinated tasks, which are any scheduled task not in the original list. In Validator 4, I check for contradictory state where a task appears both scheduled and in droppedTaskIds. In Validator 7, I verify that every dropped ID exists in the original set. These emit clear messages like "Hallucinated task ... was not in the original task list", "Task X is both scheduled AND dropped", or "Invalid dropped task: "${taskId}" was not in the original task list."
+
+## Temporal correctness & non-overlap.
+The model sometimes return invalid times or overlapping blocks. During parse (parseAndApplyAdaptiveSchedule) I validate timestamps (ISO parseable; start < end) and reject bad blocks. Then in validateSchedule() Validator 2, I detect overlapping time blocks and only allow them if both sides are explicitly concurrent (checked via canTasksBeConcurrent() looking for a "concurrent" note). 
+
+## Deadlines and dependencies
+As stated in the prompt section, I have refined my prompt to make sure that the LLM respect the deadlines and dependencies between tasks. However, the LLM may still schedule work past a deadline or forget prerequisites. In validateSchedule(), I enforce deadline compliance (Validator 5) by comparing each block's end against the task's deadline; and dependency ordering (Validator 6) by ensuring that every task's preDependence appears earlier in the scheduled order (or is explicitly dropped). Violations include messages like "Task A is scheduled before its dependency B" or "Task A ends after its deadline."
