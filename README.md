@@ -71,9 +71,12 @@ state
         a start Time
         an end Time
         a taskSet set of Task
+    
+    a set of droppedTasks with
+        a taskId String
 
 actions
-    addTimeBlock (owner: User, start: Time, end: Time)
+    addTimeBlock (owner: User, start: Time, end: Time) : (timeBlockId: String)
         requires:
             start and end are valid times;
             start is before end;
@@ -81,6 +84,7 @@ actions
         effect:
             create a new adaptive time block $b$ with this owner, start, and end;
             assign $b$ an empty set of tasks;
+            return the timeBlockId of the newly created adaptive time block;
     
     createAdaptiveSchedule (owner: User, tasks: set of Task, schedule: Schedule, routine: Routine)
         effect:
@@ -94,6 +98,7 @@ actions
             it considers information provided by attributes in task;
             it also considers other schedules represented by adaptive blocks owned by the user;
             after reasoning, the LLM assigns the task under the taskSet of one or more adaptive blocks owned by this user;
+            if time is insufficient, prioritize tasks with urgent deadlines or higher priority and put the rest in droppedTaskIds;
             return the set of all AdaptiveBlocks owned by the user;
 
     unassignBlock (owner: User, task: Task, timeBlockId: String)
@@ -184,3 +189,84 @@ This end-to-end interaction demonstrates mixed-initiative collaboration, where t
 And if error occurs (i.e., during edge cases), the UI will show the following pop-up:
 
 ![error](assets/error.png)
+
+# Implement the concept
+## AI-Assisted Adaptive Scheduling Example
+🧪 TEST CASE 2: AI-Assisted Adaptive Scheduling
+
+⏰ Current time (fixed for testing): 2025-10-04T13:00:00Z (1:00 PM) \
+📝 Unfinished tasks to schedule: 5 \
+📅 Original planned schedule blocks: 5 \
+📊 Actual routine sessions so far: 2 \
+🤖 Requesting adaptive schedule from Gemini AI... \
+
+Original Schedule
+```
+⏰ 9:00 AM UTC - 11:00 AM UTC
+   Block ID: planned-1
+   Tasks:
+   - Complete Project Proposal (Priority: 1, Duration: 120 min)
+
+⏰ 2:00 PM UTC - 3:00 PM UTC
+   Block ID: planned-2
+   Tasks:
+   - Review Pull Requests (Priority: 2, Duration: 45 min)
+
+⏰ 5:00 PM UTC - 6:00 PM UTC
+   Block ID: planned-3
+   Tasks:
+   - Gym Workout (Priority: 3, Duration: 60 min)
+
+⏰ 6:00 PM UTC - 6:30 PM UTC
+   Block ID: planned-4
+   Tasks:
+   - Prepare Dinner (Priority: 3, Duration: 30 min)
+
+⏰ 7:00 PM UTC - 7:30 PM UTC
+   Block ID: planned-5
+   Tasks:
+   - Study Spanish (Priority: 4, Duration: 30 min)
+```
+
+
+📊 Actual Routine (What Actually Happened):
+```
+⏰ 9:00 AM UTC - 10:30 AM UTC
+   Session: Morning Meeting
+   Status: Inactive
+   Interrupt Reason: Unexpected urgent meeting took longer than expected
+
+⏰ 10:30 AM UTC - 11:00 AM UTC
+   Session: Started Project Proposal
+   Status: Inactive, Paused
+   Linked Task: Complete Project Proposal
+   Interrupt Reason: Had to stop due to lunch break, only completed 30 minutes
+```
+
+🔄 Adaptive Schedule (AI-Generated):
+```
+⏰ 1:00 PM UTC - 2:00 PM UTC
+   Block ID: adaptive-block-0
+   Tasks:
+   - Complete Project Proposal (Priority: 1, Duration: 90 min)
+
+⏰ 2:00 PM UTC - 2:45 PM UTC
+   Block ID: adaptive-block-1
+   Tasks:
+   - Review Pull Requests (Priority: 2, Duration: 45 min)
+
+⏰ 4:00 PM UTC - 5:00 PM UTC
+   Block ID: adaptive-block-2
+   Tasks:
+   - Gym Workout (Priority: 3, Duration: 60 min)
+
+⏰ 5:00 PM UTC - 5:30 PM UTC
+   Block ID: adaptive-block-3
+   Tasks:
+   - Prepare Dinner (Priority: 3, Duration: 30 min)
+
+⏰ 5:30 PM UTC - 6:00 PM UTC
+   Block ID: adaptive-block-4
+   Tasks:
+   - Study Spanish (Priority: 4, Duration: 30 min)
+```
