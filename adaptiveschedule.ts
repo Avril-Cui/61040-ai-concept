@@ -193,7 +193,7 @@ export class AdaptiveSchedule {
     4. Schedule critical tasks (priority 1-2) before lower priority tasks
     5. Consider user preferences for scheduling
     6. Respect task constraints (duration, splittable, slack)
-    7. **CONCURRENCY OPTIMIZATION (CRITICAL): Only PASSIVE/BACKGROUND tasks (laundry, dishwashing - tasks that run automatically) can be done CONCURRENTLY with other tasks. Active tasks like cleaning room, organizing notes, or studying CANNOT be done concurrently. For passive tasks, you MUST create OVERLAPPING time blocks to save time. For example, "Do Laundry" from 2:00-3:00 PM can overlap with "Study" from 2:00-3:00 PM. But "Clean Room" and "Organize Notes" CANNOT overlap because both require active attention.**
+    7. **CONCURRENCY OPTIMIZATION (ALWAYS APPLY): Whenever you have a PASSIVE/BACKGROUND task (laundry, dishwashing - tasks that run automatically), you MUST ALWAYS schedule it concurrently with an active task by creating OVERLAPPING time blocks. This is MANDATORY, not optional. Active tasks (cleaning room, organizing notes, studying) CANNOT be done concurrently with each other. RULE: If you see "Do Laundry" or "Dishwashing", immediately find an active task to overlap it with.**
 
     SCHEDULING CONSTRAINTS:
     - Times must be in ISO 8601 format (e.g., "2025-10-04T14:00:00Z")
@@ -207,7 +207,7 @@ export class AdaptiveSchedule {
     - Respect task deadlines
     - Consider dependencies (preDependence tasks must be scheduled before dependent tasks)
     - If a task is splittable, it can be divided across multiple blocks. Otherwise, do not divide it across multiple **non-consecutive blocks**.
-    - **IMPORTANT: You MUST create overlapping/concurrent blocks for passive tasks (laundry, cleaning, etc.) if not all tasks can be scheduled. This means creating separate blocks with the same or overlapping time ranges. For example, if you have laundry and studying, create two blocks that overlap in time rather than scheduling them sequentially.**
+    - **MANDATORY: You MUST ALWAYS create overlapping/concurrent blocks for passive tasks (laundry, dishwashing, etc.). This means creating separate blocks with the same or overlapping time ranges. For example, if you have laundry and studying, ALWAYS create two blocks that overlap in time - NEVER schedule passive tasks sequentially. This is required even if you have enough time, as it frees up time for additional tasks.**
 
     CRITICAL REQUIREMENTS:
     1. ONLY schedule the tasks listed above - do NOT add any new tasks
@@ -242,14 +242,14 @@ export class AdaptiveSchedule {
     - CORRECT: Put task-5 and task-6 in droppedTaskIds
     - WRONG: Schedule tasks after the 5 PM deadline
 
-    EXAMPLE 2 - Concurrency optimization (MUST DO THIS if deadline is tight):
-    - Laundry (60 min, PASSIVE) + Study (120 min, ACTIVE) = normally 180 min sequential
-    - CORRECT: Overlap laundry with studying (both start at same time)
+    EXAMPLE 2 - Concurrency optimization (ALWAYS REQUIRED FOR PASSIVE TASKS):
+    - Laundry (60 min, PASSIVE) + Study (120 min, ACTIVE)
+    - MANDATORY APPROACH: Always overlap passive tasks - create these blocks:
       Block A: {"start": "2025-10-04T14:00:00Z", "end": "2025-10-04T15:00:00Z", "taskIds": ["laundry-task-id"]},
       Block B: {"start": "2025-10-04T14:00:00Z", "end": "2025-10-04T16:00:00Z", "taskIds": ["study-task-id"]}
-    - Result: Both complete by 4:00 PM, saving 60 minutes
-    - WRONG: Clean Room + Organize Notes overlapping (both are ACTIVE tasks - cannot be concurrent)
-    - WRONG: Partial overlap wastes time
+    - Result: Both complete by 4:00 PM, saving 60 minutes for other tasks
+    - WRONG: Scheduling laundry sequentially (3:40-4:40) after studying wastes 60 minutes
+    - WRONG: Clean Room + Organize Notes overlapping (both ACTIVE - cannot be concurrent)
     - WRONG: Any scheduling that extends past the deadline
 
     Return ONLY the JSON object, no additional text.`;
