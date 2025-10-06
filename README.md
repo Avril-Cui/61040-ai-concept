@@ -249,7 +249,43 @@ And if error occurs (i.e., during edge cases), the UI will show the following po
 # Part three: Implement the concept
 Run `npm install`, then `npm start` to run my code and see some example cases! You can find my augmented concept in `adaptiveschedule.spec` (which contains the same version as the concept in this README), the main backend code in `adaptiveschedule.ts`, the test cases in `adaptiveschedule-tests.ts`, and the LLM wrapper in `gemini-llm.ts`. 
 
-## Prompt-v1
+# Part four: Explore richer test cases and prompts
+
+I experimented with four test cases, three of them involved the LLM call, and the other one involved manual adaptive time block creation.
+
+## Test 0: Manual Adaptive Time Block Creation
+
+This test case shows how the test case runs without LLM (i.e., the user does the adaptive scheduling process themselves). I set up the scenario where the user allocates two tasks onto two adaptove blocks.
+
+```
+🧪 TEST CASE 1: Manual Time Block Creation
+⏰ Creating time blocks manually...
+✅ Created block: adaptive-block-0
+✅ Created block: adaptive-block-1
+
+📝 Manually assigning tasks to blocks...
+✅ Assigned "Finish 6.1040 pset" to adaptive-block-0
+✅ Assigned "Review for 6.3900 exam" to adaptive-block-1
+
+🔄 Adaptive Schedule:
+------------------------------------------
+
+⏰ 2:00 PM UTC - 3:30 PM UTC
+   Block ID: adaptive-block-0
+   Tasks:
+   - Finish 6.1040 pset (Priority: 2, Duration: 90 min)
+
+⏰ 4:00 PM UTC - 5:00 PM UTC
+   Block ID: adaptive-block-1
+   Tasks:
+   - Review for 6.3900 exam (Priority: 3, Duration: 60 min)
+```
+
+## Test 1: Baseline AI Adaptive Scheduling
+
+This is a simple scenario with no concurrent/conflicting plans, dependencies, or unfinished tasks. The user only wants to adaptively schedule the future tasks. The only challenge here is we want to see whether the priorities are respected, and whether the output schedule has an acceptable format (i.e., no conflicts or failing any constraints). Prompt-v1 works well in this case. This is because this test case imposes no special dependencies or constraints, thus is straightforward enough for the LLM to output a clean, working adaptive schedule.
+
+###  Prompt-v1
 When first implementing the concept, I used a basic prompt (`Prompt-v1`). I further refined this prompt based on edge test cases I experimented with, which will be covered in later sections. Here is my initial version:
 
 ```
@@ -305,42 +341,7 @@ Return your response as a JSON object with this exact structure:
 Return ONLY the JSON object, no additional text.`;
 ```
 
-# Part four: Explore richer test cases and prompts
-
-I experimented with four test cases, three of them involved the LLM call, and the other one involved manual adaptive time block creation.
-
-## Test 0: Manual Adaptive Time Block Creation
-
-This test case shows how the test case runs without LLM (i.e., the user does the adaptive scheduling process themselves). I set up the scenario where the user allocates two tasks onto two adaptove blocks.
-
-```
-🧪 TEST CASE 1: Manual Time Block Creation
-⏰ Creating time blocks manually...
-✅ Created block: adaptive-block-0
-✅ Created block: adaptive-block-1
-
-📝 Manually assigning tasks to blocks...
-✅ Assigned "Finish 6.1040 pset" to adaptive-block-0
-✅ Assigned "Review for 6.3900 exam" to adaptive-block-1
-
-🔄 Adaptive Schedule:
-------------------------------------------
-
-⏰ 2:00 PM UTC - 3:30 PM UTC
-   Block ID: adaptive-block-0
-   Tasks:
-   - Finish 6.1040 pset (Priority: 2, Duration: 90 min)
-
-⏰ 4:00 PM UTC - 5:00 PM UTC
-   Block ID: adaptive-block-1
-   Tasks:
-   - Review for 6.3900 exam (Priority: 3, Duration: 60 min)
-```
-
-## Test 1: Baseline AI Adaptive Scheduling
-
-This is a simple scenario with no concurrent/conflicting plans, dependencies, or unfinished tasks. The user only wants to adaptively schedule the future tasks. The only challenge here is we want to see whether the priorities are respected, and whether the output schedule has an acceptable format (i.e., no conflicts or failing any constraints). Prompt-v1 (see above) works well in this case. This is because this test case imposes no special dependencies or constraints, thus is straightforward enough for the LLM to output a clean, working adaptive schedule.
-
+### Test case performance
 Scenario set up: The user has an intended schedule with a set of planned tasks. The user also logged their actual routine. Due to some conflicts, the user now hopes to generate an adaptive schedule for the rest of the day (more details see below).
 
 Task overview
